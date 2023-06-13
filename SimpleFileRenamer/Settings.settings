@@ -1,0 +1,12 @@
+﻿<?xml version='1.0' encoding='utf-8'?>
+<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="SimpleFileRenamer" GeneratedClassName="Settings">
+  <Profiles />
+  <Settings>
+    <Setting Name="Delimiter" Type="System.String" Scope="User">
+      <Value Profile="(Default)">-</Value>
+    </Setting>
+    <Setting Name="Format" Type="System.String" Scope="User">
+      <Value Profile="(Default)">qr_{0}_{1}</Value>
+    </Setting>
+  </Settings>
+</SettingsFile>
