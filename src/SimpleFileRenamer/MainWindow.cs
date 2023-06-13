@@ -1,3 +1,4 @@
+using Serilog;
 using System.ComponentModel;
 using System.Diagnostics;
 
@@ -15,6 +16,7 @@ public partial class MainWindow : Form
     public MainWindow()
     {
         InitializeComponent();
+        Log.Verbose("Loading MainWindow");
 
         loadedListView.Partner = previewListView;
         previewListView.Partner = loadedListView;
@@ -28,16 +30,19 @@ public partial class MainWindow : Form
 
         if (char.TryParse(Settings.Default.Delimiter, out var delimiter))
         {
+            Log.Debug("Delimiter parsed to {Delimiter} successfully", delimiter);
             Delimiter = delimiter;
         }
         else
         {
             if (Settings.Default.Delimiter == "[SPACE]")
             {
+                Log.Debug("Delimiter parsed to {Delimiter} successfully", "[SPACE]");
                 Delimiter = ' ';
             }
             else
             {
+                Log.Debug("Delimiter was not able to be read and hard reest", delimiter);
                 var hardResetDelimiter = '-';
                 Delimiter = hardResetDelimiter;
                 Settings.Default.Delimiter = hardResetDelimiter.ToString();
@@ -58,6 +63,7 @@ public partial class MainWindow : Form
 
         if (folderDialog.ShowDialog() == DialogResult.OK)
         {
+            Log.Debug("Selected {Folder} to load from", folderDialog.SelectedPath);
             DirectoryPath = folderDialog.SelectedPath;
             LoadFromDirectory(DirectoryPath);
 
@@ -252,26 +258,28 @@ public partial class MainWindow : Form
 
     private void formatToolStripMenuItem_Click(object sender, EventArgs e)
     {
+        Log.Verbose("Attempting to open Format Window");
         var formatDialog = new FormatWindow(Delimiter, Format);
 
         if (formatDialog.ShowDialog() == DialogResult.OK)
         {
-            Debug.WriteLine("Request to save formatting", "[FormatMenuItem]");
-
             if (formatDialog.Delimiter.HasValue &&
                 char.IsWhiteSpace(formatDialog.Delimiter.Value))
             {
+                Log.Debug("Format Window returned with '{Delimiter}' delimiter", "[SPACE]");
                 Delimiter = formatDialog.Delimiter.Value;
                 Settings.Default.Delimiter = "[SPACE]";
             }
             else if (formatDialog.Delimiter.HasValue)
             {
+                Log.Debug("Format Window returned with '{Delimiter}' delimiter", formatDialog.Delimiter);
                 Delimiter = formatDialog.Delimiter.Value;
                 Settings.Default.Delimiter = formatDialog.Delimiter.ToString();
             }
 
             if (Format != formatDialog.Format && !string.IsNullOrWhiteSpace(DirectoryPath))
             {
+                Log.Debug("New format '{Format}' has been chosen", formatDialog.Format);
                 Format = formatDialog.Format ?? Settings.Default.Format;
                 Settings.Default.Format = Format;
 
@@ -290,6 +298,7 @@ public partial class MainWindow : Form
     {
         if (string.IsNullOrWhiteSpace(directoryPath))
         {
+            Log.Verbose("Skipping loading from directory as directory path null or whitespace");
             return;
         }
 
@@ -303,6 +312,7 @@ public partial class MainWindow : Form
         renameProgressBar.Maximum = files.Length;
         renameProgressBar.Value = 0;
 
+        Log.Verbose("Begining file load into the views");
         // Add the files to the ListView
         foreach (var file in files)
         {
@@ -344,6 +354,7 @@ public partial class MainWindow : Form
             }
             else
             {
+                Log.Debug("Failed to split {FileName} into supplied template", originalFileName);
                 previewListView.Items.Add(new ListViewItem
                 {
                     Tag = file
@@ -371,5 +382,10 @@ public partial class MainWindow : Form
         using var liveModeDialog = new LiveMode();
         liveModeDialog.FormClosed += (s, e) => Show();
         liveModeDialog.ShowDialog();
+    }
+
+    private void MainWindow_FormClosing(object sender, FormClosingEventArgs e)
+    {
+        Log.Information("Application Shutting Down");
     }
 }

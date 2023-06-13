@@ -1,4 +1,6 @@
-﻿namespace SimpleFileRenamer;
+﻿using Serilog;
+
+namespace SimpleFileRenamer;
 public partial class FormatWindow : Form
 {
     public char? Delimiter { get; set; } = default!;
@@ -8,6 +10,7 @@ public partial class FormatWindow : Form
     public FormatWindow(char delimiter, string format)
     {
         InitializeComponent();
+        Log.Verbose("Loading MainWindow");
 
         Delimiter = delimiter;
         Format = format;
@@ -82,6 +85,7 @@ public partial class FormatWindow : Form
 
     private void useSpaceButton_Click(object sender, EventArgs e)
     {
+        Log.Debug("Using space as the delimiter selected");
         saveButton.Enabled = true;
 
         useSpaceButton.Enabled = false;
@@ -102,6 +106,7 @@ public partial class FormatWindow : Form
 
     private void saveButton_Click(object sender, EventArgs e)
     {
+        Log.Debug("Triggering format save action");
         DialogResult = DialogResult.OK;
     }
 }

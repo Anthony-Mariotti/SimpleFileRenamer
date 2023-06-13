@@ -75,21 +75,21 @@ partial class MainWindow
         // openFolderToolStripMenuItem
         // 
         openFolderToolStripMenuItem.Name = "openFolderToolStripMenuItem";
-        openFolderToolStripMenuItem.Size = new Size(224, 26);
+        openFolderToolStripMenuItem.Size = new Size(174, 26);
         openFolderToolStripMenuItem.Text = "Open Folder";
         openFolderToolStripMenuItem.Click += openFolderToolStripMenuItem_Click;
         // 
         // formatToolStripMenuItem
         // 
         formatToolStripMenuItem.Name = "formatToolStripMenuItem";
-        formatToolStripMenuItem.Size = new Size(224, 26);
+        formatToolStripMenuItem.Size = new Size(174, 26);
         formatToolStripMenuItem.Text = "Settings";
         formatToolStripMenuItem.Click += formatToolStripMenuItem_Click;
         // 
         // closeToolStripMenuItem
         // 
         closeToolStripMenuItem.Name = "closeToolStripMenuItem";
-        closeToolStripMenuItem.Size = new Size(224, 26);
+        closeToolStripMenuItem.Size = new Size(174, 26);
         closeToolStripMenuItem.Text = "Close";
         closeToolStripMenuItem.Click += closeToolStripMenuItem_Click;
         // 
@@ -104,7 +104,7 @@ partial class MainWindow
         // 
         undoToolStripMenuItem.Enabled = false;
         undoToolStripMenuItem.Name = "undoToolStripMenuItem";
-        undoToolStripMenuItem.Size = new Size(224, 26);
+        undoToolStripMenuItem.Size = new Size(128, 26);
         undoToolStripMenuItem.Text = "Undo";
         undoToolStripMenuItem.Click += undoToolStripMenuItem_Click;
         // 
@@ -112,7 +112,7 @@ partial class MainWindow
         // 
         redoToolStripMenuItem.Enabled = false;
         redoToolStripMenuItem.Name = "redoToolStripMenuItem";
-        redoToolStripMenuItem.Size = new Size(224, 26);
+        redoToolStripMenuItem.Size = new Size(128, 26);
         redoToolStripMenuItem.Text = "Redo";
         // 
         // toolsToolStripMenuItem
@@ -125,7 +125,7 @@ partial class MainWindow
         // liveModeToolStripMenuItem
         // 
         liveModeToolStripMenuItem.Name = "liveModeToolStripMenuItem";
-        liveModeToolStripMenuItem.Size = new Size(224, 26);
+        liveModeToolStripMenuItem.Size = new Size(161, 26);
         liveModeToolStripMenuItem.Text = "Live Mode";
         liveModeToolStripMenuItem.Click += liveModeToolStripMenuItem_Click;
         // 
@@ -235,6 +235,7 @@ partial class MainWindow
         Name = "MainWindow";
         StartPosition = FormStartPosition.CenterScreen;
         Text = "Simple File Renamer";
+        FormClosing += MainWindow_FormClosing;
         mainMenuStrip.ResumeLayout(false);
         mainMenuStrip.PerformLayout();
         mainStatusStrip.ResumeLayout(false);
