@@ -6,7 +6,27 @@
     <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
+    <Title>$(AssemblyName)</Title>
+    <Authors>Anthony Mariotti</Authors>
+    <PackageProjectUrl>https://github.com/Anthony-Mariotti/SimpleFileRenamer</PackageProjectUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/Anthony-Mariotti/SimpleFileRenamer</RepositoryUrl>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <Copyright>Copyright (c) 2023 Anthony Mariotti</Copyright>
+    <NeutralLanguage>en-US</NeutralLanguage>
+    <Description>SimpleFileRenamer is a powerful file renaming tool in C# with WinForms. Rename files in bulk, undo/redo actions, and automate file formatting based on Excel/CSV sessions. Effortlessly organize your files with this versatile application.</Description>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\LICENSE">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="..\..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
