@@ -92,6 +92,26 @@ public partial class SessionWindow : Form
             return;
         }
 
+        if (!Directory.Exists(_config.WatchedFolder))
+        {
+            Log.Warning("Configured WatchedFolder does not exist: {WatchedFolder}", _config.WatchedFolder);
+            MessageBox.Show("Please check your configuration file, the configured watched folder path is not valid",
+                "Configuration Error",
+                MessageBoxButtons.OK, MessageBoxIcon.Error);
+            Close();
+            return;
+        }
+
+        if (!Directory.Exists(_config.DestinationFolder))
+        {
+            Log.Warning("Configured DestinationFolder does not exist: {DestinationFolder}", _config.DestinationFolder);
+            MessageBox.Show("Please check your configuration file, the configured destination folder path is not valid",
+                "Configuration Error",
+                MessageBoxButtons.OK, MessageBoxIcon.Error);
+            Close();
+            return;
+        }
+
         Log.Debug("Loading file watchers for {Extensions}", string.Join(", ", selectedExtensions));
         foreach (var extension in selectedExtensions)
         {
