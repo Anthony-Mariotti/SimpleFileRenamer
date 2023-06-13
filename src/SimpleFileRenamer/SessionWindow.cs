@@ -6,13 +6,14 @@ namespace SimpleFileRenamer;
 
 public partial class SessionWindow : Form
 {
-    private string _configFilePath;
-    private LiveViewConfig _config;
-    private string _personName;
-    private ListViewItem _personListItem;
+    private readonly string _configFilePath;
+    private readonly ListViewItem _personListItem;
+    private readonly List<FileSystemWatcher> _fileWatchers = new List<FileSystemWatcher>();
+    private readonly string _personName;
+
+    private LiveViewConfig _config = default!;
     private int _fileCount = 0;
     private int _currentSessionNumber = 0;
-    private List<FileSystemWatcher> _fileWatchers = new List<FileSystemWatcher>();
 
     public SessionWindow(string personName, ListViewItem personListItem)
     {
@@ -127,7 +128,7 @@ public partial class SessionWindow : Form
         _config.LastSessionNumbers[safePersonName] = _currentSessionNumber;
 
         // Save the config back to the file
-        File.WriteAllText(_configFilePath, JsonConvert.SerializeObject(_config));
+        SaveConfiguration();
     }
 
     private void LoadSessionState()
@@ -155,6 +156,24 @@ public partial class SessionWindow : Form
             foreach (var fileName in sessionState.CreatedFiles)
             {
                 FilesListView.Items.Add(fileName);
+            }
+        }
+    }
+
+    private void SaveConfiguration()
+    {
+        if (_config != null)
+        {
+            try
+            {
+                // Save the config back to the file
+                File.WriteAllText(_configFilePath, JsonConvert.SerializeObject(_config));
+            }
+            catch (Exception ex)
+            {
+                // Log error or show message to user
+                MessageBox.Show("Failed to save configuration. " + ex.Message,
+                    "Error Saving Configuration", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
     }
@@ -239,7 +258,7 @@ public partial class SessionWindow : Form
             _config.LastSessionNumbers[safePersonName] = ++_currentSessionNumber;
 
             // Save the config back to the file
-            File.WriteAllText(_configFilePath, JsonConvert.SerializeObject(_config));
+            SaveConfiguration();
 
             Close();
         }
@@ -249,6 +268,9 @@ public partial class SessionWindow : Form
     {
         foreach (var watcher in _fileWatchers)
         {
+            // Unsubscribe from the created event
+            watcher.Created -= FileSystemWatcher_Created;
+
             // Disable the FileSystemWatcher to stop raising events
             watcher.EnableRaisingEvents = false;
 
