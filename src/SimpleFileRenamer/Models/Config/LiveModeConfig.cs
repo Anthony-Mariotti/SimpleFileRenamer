@@ -1,5 +1,5 @@
-﻿namespace SimpleFileRenamer;
-public  class LiveViewConfig
+﻿namespace SimpleFileRenamer.Models.Config;
+public class LiveModeConfig
 {
     public string WatchedFolder { get; set; } = default!;
 

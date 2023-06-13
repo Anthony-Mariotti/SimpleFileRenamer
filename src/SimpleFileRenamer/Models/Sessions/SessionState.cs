@@ -1,7 +1,7 @@
-﻿namespace SimpleFileRenamer;
+﻿namespace SimpleFileRenamer.Models.Sessions;
 public class SessionState
 {
-    public string PersonName { get; set; }
+    public string Name { get; set; }
 
     public List<string> CreatedFiles { get; set; }
 
@@ -9,7 +9,7 @@ public class SessionState
 
     public SessionState()
     {
-        PersonName = string.Empty;
+        Name = string.Empty;
         CreatedFiles = new List<string>();
     }
 }

@@ -1,6 +1,6 @@
 ﻿namespace SimpleFileRenamer;
 
-partial class LiveMode
+partial class LiveModeWindow
 {
     /// <summary>
     /// Required designer variable.

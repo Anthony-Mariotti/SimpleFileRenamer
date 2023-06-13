@@ -1,12 +1,11 @@
 ﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
-using System.Windows.Forms;
 
-namespace SimpleFileRenamer;
-public class SyncedListView : ListView
+namespace SimpleFileRenamer.Controls;
+public partial class SyncedListView : ListView
 {
     [DllImport("user32.dll", CharSet = CharSet.Auto)]
-    private static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
+    private static extern nint SendMessage(nint hWnd, uint Msg, nint wParam, nint lParam);
 
     private const uint WM_VSCROLL = 0x0115;
     private const int SB_THUMBTRACK = 5;

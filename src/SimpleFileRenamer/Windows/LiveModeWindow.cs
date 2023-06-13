@@ -1,14 +1,19 @@
 ﻿using NPOI.XSSF.UserModel;
 using Serilog;
+using SimpleFileRenamer.Abstractions.Factory;
 using System.Diagnostics;
 
 namespace SimpleFileRenamer;
-public partial class LiveMode : Form
+public partial class LiveModeWindow : Form
 {
-    public LiveMode()
+    private readonly IWindowFactory _windowFactory;
+
+    public LiveModeWindow(IWindowFactory windowFactory)
     {
-        InitializeComponent();
         Log.Verbose("Loading LiveMode");
+        InitializeComponent();
+
+        _windowFactory = windowFactory;
 
         PeopleListView.View = View.Details;
     }
@@ -207,12 +212,12 @@ public partial class LiveMode : Form
             Log.Debug("The item {Data} has been selected for a session", personName);
 
             // Create and open the SessionForm
-            using var sessionForm = new SessionWindow(personName, selectedItem);
+            using var sessionWindow = _windowFactory.CreateSessionWindow();
 
-            if (!sessionForm.IsDisposed)
+            if (!sessionWindow.IsDisposed)
             {
                 Log.Verbose("Showing session window");
-                _ = sessionForm.ShowDialog(this);
+                _ = sessionWindow.ShowDialog(this, personName, selectedItem);
                 return;
             }
 
@@ -222,7 +227,7 @@ public partial class LiveMode : Form
 
     private void SettingsMenuItem_Click(object sender, EventArgs e)
     {
-        using var configWindow = new SessionConfigurationWindow();
+        using var configWindow = _windowFactory.CreateSessionConfigurationWindow();
         _ = configWindow.ShowDialog();
     }
 }

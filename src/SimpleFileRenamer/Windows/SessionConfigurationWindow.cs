@@ -1,10 +1,9 @@
-﻿using Newtonsoft.Json;
+﻿using SimpleFileRenamer.Abstractions.Services;
 
 namespace SimpleFileRenamer;
 public partial class SessionConfigurationWindow : Form
 {
-    private string _configFilePath;
-    private LiveViewConfig _config = default!;
+    private readonly IConfigurationService _configuration;
     private readonly IReadOnlyCollection<string> _possibleExtensions = new List<string>
     {
         ".jpeg",
@@ -21,32 +20,28 @@ public partial class SessionConfigurationWindow : Form
         ".tiff"
     };
 
-    public SessionConfigurationWindow()
+    public SessionConfigurationWindow(IConfigurationService configuration)
     {
         InitializeComponent();
 
-        _configFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.json");
+        // Inject the configuration
+        _configuration = configuration;
+
         LoadConfiguration();
         LoadExtensionsIntoList();
     }
 
     private void LoadConfiguration()
     {
-        if (File.Exists(_configFilePath))
-        {
-            var configJson = File.ReadAllText(_configFilePath);
-            _config = JsonConvert.DeserializeObject<LiveViewConfig>(configJson) ?? new();
-
-            WatchedFolderTextBox.Text = _config?.WatchedFolder ?? string.Empty;
-            DestinationFolderTextBox.Text = _config?.DestinationFolder ?? string.Empty;
-        }
+        WatchedFolderTextBox.Text = _configuration.Value.LiveMode.WatchedFolder ?? string.Empty;
+        DestinationFolderTextBox.Text = _configuration.Value.LiveMode.DestinationFolder ?? string.Empty;
     }
 
     private void LoadExtensionsIntoList()
     {
         // Load extensions from the configuration into the SelectedExtensionsListBox.
         SelectedExtensionsListBox.Items.Clear();
-        foreach (var extension in _config.MonitoredExtensions)
+        foreach (var extension in _configuration.Value.LiveMode.MonitoredExtensions)
         {
             SelectedExtensionsListBox.Items.Add(extension);
         }
@@ -56,7 +51,7 @@ public partial class SessionConfigurationWindow : Form
         foreach (var extension in _possibleExtensions) // add more extensions here
         {
             // Only add to AvailableExtensionsListBox if not already in SelectedExtensionsListBox
-            if (!_config.MonitoredExtensions.Contains(extension))
+            if (!_configuration.Value.LiveMode.MonitoredExtensions.Contains(extension))
             {
                 AvailableExtensionsListBox.Items.Add(extension);
             }
@@ -85,28 +80,21 @@ public partial class SessionConfigurationWindow : Form
 
     private void SaveButton_Click(object sender, EventArgs e)
     {
-        var config = new LiveViewConfig
-        {
-            WatchedFolder = WatchedFolderTextBox.Text,
-            DestinationFolder = DestinationFolderTextBox.Text,
-            MonitoredExtensions = _config.MonitoredExtensions,
-        };
+        _configuration.Value.LiveMode.WatchedFolder = WatchedFolderTextBox.Text;
+        _configuration.Value.LiveMode.DestinationFolder = DestinationFolderTextBox.Text;
+        _configuration.Save();
 
-        File.WriteAllText(_configFilePath, JsonConvert.SerializeObject(config));
         Close();
     }
 
-    private void CancelButton_Click(object sender, EventArgs e)
-    {
-        Close();
-    }
+    private void CancelButton_Click(object sender, EventArgs e) => Close();
 
     private void SelectExtensionButton_Click(object sender, EventArgs e)
     {
         // Move the selected file extension from AvailableExtensionsListBox to SelectedExtensionsListBox.
         if (AvailableExtensionsListBox.SelectedItem is string selectedExtension)
         {
-            _config.MonitoredExtensions.Add(selectedExtension);
+            _configuration.Value.LiveMode.MonitoredExtensions.Add(selectedExtension);
             SelectedExtensionsListBox.Items.Add(selectedExtension);
             AvailableExtensionsListBox.Items.Remove(selectedExtension);
         }
@@ -115,10 +103,9 @@ public partial class SessionConfigurationWindow : Form
     private void RemoveExtensionButton_Click(object sender, EventArgs e)
     {
         // Remove the selected file extension from SelectedExtensionsListBox and put it back in AvailableExtensionsListBox.
-        var selectedExtension = SelectedExtensionsListBox.SelectedItem as string;
-        if (selectedExtension != null)
+        if (SelectedExtensionsListBox.SelectedItem is string selectedExtension)
         {
-            _config.MonitoredExtensions.Remove(selectedExtension);
+            _configuration.Value.LiveMode.MonitoredExtensions.Remove(selectedExtension);
             SelectedExtensionsListBox.Items.Remove(selectedExtension);
             AvailableExtensionsListBox.Items.Add(selectedExtension);
         }

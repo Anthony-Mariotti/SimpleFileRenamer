@@ -1,4 +1,11 @@
+using Microsoft.Extensions.DependencyInjection;
 using Serilog;
+using SimpleFileRenamer.Abstractions.Factory;
+using SimpleFileRenamer.Abstractions.Services;
+using SimpleFileRenamer.Abstractions.Utilities;
+using SimpleFileRenamer.Services;
+using SimpleFileRenamer.Services.Factory;
+using SimpleFileRenamer.Utilities;
 
 namespace SimpleFileRenamer;
 
@@ -10,6 +17,7 @@ internal static class Program
     [STAThread]
     static void Main()
     {
+        // Create logging provider
         Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Information()
             .WriteTo.Console()
@@ -23,7 +31,18 @@ internal static class Program
             // To customize application configuration such as set high DPI settings or default font,
             // see https://aka.ms/applicationconfiguration.
             ApplicationConfiguration.Initialize();
-            Application.Run(new MainWindow());
+
+            // Create a service collection
+            var serviceCollection = new ServiceCollection();
+            ConfigureServices(serviceCollection);
+
+            // Build the DI container
+            var serviceProvider = serviceCollection.BuildServiceProvider();
+
+            // Resolve the MainWindow from the DI container
+            var mainWindow = serviceProvider.GetRequiredService<MainWindow>();
+
+            Application.Run(mainWindow);
         }
         catch (Exception ex)
         {
@@ -33,5 +52,21 @@ internal static class Program
         {
             Log.CloseAndFlush();
         }
+    }
+
+    private static void ConfigureServices(IServiceCollection services)
+    {
+        services.AddSingleton<IFileSerializer, JsonFileSerializer>();
+        services.AddSingleton<IConfigurationService, ConfigurationService>();
+        services.AddSingleton<IWindowFactory, WindowFactory>();
+
+        services.AddScoped<ISessionStateService, SessionStateService>();
+
+        // Available Windows
+        services.AddTransient<MainWindow>();
+        services.AddTransient<FormatWindow>();
+        services.AddTransient<LiveModeWindow>();
+        services.AddTransient<SessionWindow>();
+        services.AddTransient<SessionConfigurationWindow>();
     }
 }

@@ -1,4 +1,5 @@
 using Serilog;
+using SimpleFileRenamer.Abstractions.Factory;
 using System.ComponentModel;
 using System.Diagnostics;
 
@@ -6,6 +7,7 @@ namespace SimpleFileRenamer;
 
 public partial class MainWindow : Form
 {
+    private readonly IWindowFactory _windowFactory;
     private Stack<Dictionary<string, string>> renamedFileStack = new Stack<Dictionary<string, string>>();
 
     private char Delimiter { get; set; }
@@ -13,19 +15,22 @@ public partial class MainWindow : Form
 
     private string? DirectoryPath { get; set; }
 
-    public MainWindow()
+    public MainWindow() { }
+
+    public MainWindow(IWindowFactory windowFactory)
     {
         InitializeComponent();
         Log.Verbose("Loading MainWindow");
+        _windowFactory = windowFactory;
 
-        loadedListView.Partner = previewListView;
-        previewListView.Partner = loadedListView;
+        LoadedListView.Partner = PreviewListView;
+        PreviewListView.Partner = LoadedListView;
 
-        loadedListView.View = View.Details;
-        loadedListView.Columns.Add("Loaded File", loadedListView.Width - 25);
+        LoadedListView.View = View.Details;
+        LoadedListView.Columns.Add("Loaded File", LoadedListView.Width - 25);
 
-        previewListView.View = View.Details;
-        previewListView.Columns.Add("Rename Preview", previewListView.Width - 25);
+        PreviewListView.View = View.Details;
+        PreviewListView.Columns.Add("Rename Preview", PreviewListView.Width - 25);
 
 
         if (char.TryParse(Settings.Default.Delimiter, out var delimiter))
@@ -74,62 +79,62 @@ public partial class MainWindow : Form
 
     private void loadedListView_SelectedIndexChanged(object sender, EventArgs e)
     {
-        previewListView.SelectedItems.Clear();
+        PreviewListView.SelectedItems.Clear();
 
         // Select the corresponding items in listView2 based on the selected indices in listView1
-        foreach (int selectedIndex in loadedListView.SelectedIndices)
+        foreach (int selectedIndex in LoadedListView.SelectedIndices)
         {
-            if (selectedIndex >= 0 && selectedIndex < previewListView.Items.Count)
+            if (selectedIndex >= 0 && selectedIndex < PreviewListView.Items.Count)
             {
-                previewListView.Items[selectedIndex].Selected = true;
+                PreviewListView.Items[selectedIndex].Selected = true;
             }
         }
     }
 
     private void buttonRename_Click(object sender, EventArgs e)
     {
-        if (!renameWorker.IsBusy && loadedListView.Items.Count > 0)
+        if (!RenameWorker.IsBusy && LoadedListView.Items.Count > 0)
         {
-            renameProgressBar.Maximum = loadedListView.Items.Count;
-            renameProgressBar.Value = 0;
+            RenameProgressBar.Maximum = LoadedListView.Items.Count;
+            RenameProgressBar.Value = 0;
 
             // Create lists of file paths and new filenames in the UI thread
             var filePaths = new List<string>();
             var newFilenames = new List<string>();
 
-            foreach (ListViewItem item in loadedListView.Items)
+            foreach (ListViewItem item in LoadedListView.Items)
             {
                 filePaths.Add((string)item.Tag);
             }
 
-            foreach (ListViewItem item in previewListView.Items)
+            foreach (ListViewItem item in PreviewListView.Items)
             {
                 newFilenames.Add(item.Text);
             }
 
             // Pass the file paths to the BackgroundWorker
-            renameWorker.RunWorkerAsync(Tuple.Create(filePaths, newFilenames));
+            RenameWorker.RunWorkerAsync(Tuple.Create(filePaths, newFilenames));
         }
     }
 
     private void undoToolStripMenuItem_Click(object sender, EventArgs e)
     {
-        if (undoWorker.IsBusy)
+        if (UndoWorker.IsBusy)
         {
             return;
         }
 
         if (renamedFileStack.TryPop(out var undoRename))
         {
-            renameProgressBar.Value = 0;
-            renameProgressBar.Maximum = undoRename.Count;
+            RenameProgressBar.Value = 0;
+            RenameProgressBar.Maximum = undoRename.Count;
 
-            undoWorker.RunWorkerAsync(undoRename);
+            UndoWorker.RunWorkerAsync(undoRename);
         }
 
         if (renamedFileStack.Count <= 0)
         {
-            undoToolStripMenuItem.Enabled = false;
+            UndoToolStripMenuItem.Enabled = false;
         }
     }
 
@@ -155,7 +160,7 @@ public partial class MainWindow : Form
             try
             {
                 Debug.WriteLine($"Renaming {originalFilePath} -> {newFilePath}", "[FileRenameWorker]");
-                renameWorker.ReportProgress(
+                RenameWorker.ReportProgress(
                     i + 1, $"{Path.GetFileName(originalFilePath)} -> {Path.GetFileName(newFilePath)}");
 
                 //Task.Delay(500).Wait(); // Simulated Rename
@@ -172,27 +177,27 @@ public partial class MainWindow : Form
 
     private void renameWorker_ProgressChanged(object sender, ProgressChangedEventArgs e)
     {
-        renameProgressBar.Value = e.ProgressPercentage;
-        renameStatusLabel.Text = e.UserState!.ToString();
+        RenameProgressBar.Value = e.ProgressPercentage;
+        RenameStatusLabel.Text = e.UserState!.ToString();
     }
 
     private void renameWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
     {
         renamedFileStack.Push((Dictionary<string, string>)e.Result!);
-        renameStatusLabel.Text = "Done";
-        buttonRename.Enabled = false;
-        undoToolStripMenuItem.Enabled = true;
+        RenameStatusLabel.Text = "Done";
+        ButtonRename.Enabled = false;
+        UndoToolStripMenuItem.Enabled = true;
 
-        loadedListView.Items.Clear();
-        previewListView.Items.Clear();
+        LoadedListView.Items.Clear();
+        PreviewListView.Items.Clear();
     }
 
     private void undoWorker_DoWork(object sender, DoWorkEventArgs e)
     {
         var undoRename = (Dictionary<string, string>)e.Argument!;
 
-        renameProgressBar.Value = 0;
-        renameProgressBar.Maximum = undoRename.Count;
+        RenameProgressBar.Value = 0;
+        RenameProgressBar.Maximum = undoRename.Count;
 
         var index = 0;
         foreach (var item in undoRename)
@@ -203,7 +208,7 @@ public partial class MainWindow : Form
             try
             {
                 Debug.WriteLine($"Undo renaming {newFilePath} -> {originalFilePath}", "[UndoRenameWorker]");
-                undoWorker.ReportProgress(
+                UndoWorker.ReportProgress(
                     index + 1, $"{Path.GetFileName(originalFilePath)} -> {Path.GetFileName(newFilePath)}");
 
                 //Task.Delay(500).Wait(); // Simulated Rename
@@ -220,39 +225,39 @@ public partial class MainWindow : Form
 
     private void undoWorker_ProgressChanged(object sender, ProgressChangedEventArgs e)
     {
-        renameProgressBar.Value = e.ProgressPercentage;
-        renameStatusLabel.Text = e.UserState!.ToString();
+        RenameProgressBar.Value = e.ProgressPercentage;
+        RenameStatusLabel.Text = e.UserState!.ToString();
     }
 
     private void undoWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
     {
-        renameStatusLabel.Text = "Done";
-        buttonRename.Enabled = false;
+        RenameStatusLabel.Text = "Done";
+        ButtonRename.Enabled = false;
     }
 
     private void removeLoadedFileMenuItem_Click(object sender, EventArgs e)
     {
-        if (loadedListView.SelectedItems.Count > 0)
+        if (LoadedListView.SelectedItems.Count > 0)
         {
-            foreach (ListViewItem item in loadedListView.SelectedItems)
+            foreach (ListViewItem item in LoadedListView.SelectedItems)
             {
-                var loadedIndex = loadedListView.Items.IndexOf(item);
+                var loadedIndex = LoadedListView.Items.IndexOf(item);
 
-                loadedListView.Items.Remove(item);
-                previewListView.Items.RemoveAt(loadedIndex);
+                LoadedListView.Items.Remove(item);
+                PreviewListView.Items.RemoveAt(loadedIndex);
             }
         }
     }
 
     private void loadedFileContextMenu_Opening(object sender, CancelEventArgs e)
     {
-        if (loadedListView.SelectedItems.Count == 0)
+        if (LoadedListView.SelectedItems.Count == 0)
         {
-            removeLoadedFileMenuItem.Enabled = false;
+            RemoveLoadedFileMenuItem.Enabled = false;
         }
         else
         {
-            removeLoadedFileMenuItem.Enabled = true;
+            RemoveLoadedFileMenuItem.Enabled = true;
         }
     }
 
@@ -305,12 +310,12 @@ public partial class MainWindow : Form
         var files = Directory.GetFiles(directoryPath);
 
         // Clear the ListView before adding new items
-        loadedListView.Items.Clear();
-        previewListView.Items.Clear();
+        LoadedListView.Items.Clear();
+        PreviewListView.Items.Clear();
 
-        renameStatusLabel.Text = $"Loading {directoryPath}";
-        renameProgressBar.Maximum = files.Length;
-        renameProgressBar.Value = 0;
+        RenameStatusLabel.Text = $"Loading {directoryPath}";
+        RenameProgressBar.Maximum = files.Length;
+        RenameProgressBar.Value = 0;
 
         Log.Verbose("Begining file load into the views");
         // Add the files to the ListView
@@ -318,7 +323,7 @@ public partial class MainWindow : Form
         {
             //Task.Delay(100).Wait(); // Simulate
             Debug.WriteLine(file, "[FileLoading]");
-            renameProgressBar.Value++;
+            RenameProgressBar.Value++;
 
             // Create a new ListViewItem with the filename
             var item = new ListViewItem(Path.GetFileName(file))
@@ -328,7 +333,7 @@ public partial class MainWindow : Form
             };
 
             // Add the item to the ListView
-            loadedListView.Items.Add(item);
+            LoadedListView.Items.Add(item);
 
             // Generate new file name using the pattern provided by the user
             var originalFileName = Path.GetFileNameWithoutExtension(file);
@@ -350,21 +355,21 @@ public partial class MainWindow : Form
                 };
 
                 // Add the item to the ListView
-                previewListView.Items.Add(newItem);
+                PreviewListView.Items.Add(newItem);
             }
             else
             {
                 Log.Debug("Failed to split {FileName} into supplied template", originalFileName);
-                previewListView.Items.Add(new ListViewItem
+                PreviewListView.Items.Add(new ListViewItem
                 {
                     Tag = file
                 });
             }
         }
 
-        renameProgressBar.Value = 0;
-        renameStatusLabel.Text = "Done";
-        buttonRename.Enabled = true;
+        RenameProgressBar.Value = 0;
+        RenameStatusLabel.Text = "Done";
+        ButtonRename.Enabled = true;
     }
 
     private string[] SmartSplit(string input, char delimiter)
@@ -379,13 +384,11 @@ public partial class MainWindow : Form
     private void liveModeToolStripMenuItem_Click(object sender, EventArgs e)
     {
         Hide();
-        using var liveModeDialog = new LiveMode();
+        using var liveModeDialog = _windowFactory.CreateLiveModeWindow();
         liveModeDialog.FormClosed += (s, e) => Show();
         liveModeDialog.ShowDialog();
     }
 
-    private void MainWindow_FormClosing(object sender, FormClosingEventArgs e)
-    {
+    private void MainWindow_FormClosing(object sender, FormClosingEventArgs e) =>
         Log.Information("Application Shutting Down");
-    }
 }
