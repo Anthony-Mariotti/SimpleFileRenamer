@@ -19,7 +19,7 @@ public partial class SyncedListView : ListView
     // Flag to avoid recursive message sending
     private bool isSyncing = false;
 
-    private bool debug = false;
+    private readonly bool debug = false;
 
     protected override void WndProc(ref Message m)
     {
@@ -62,8 +62,7 @@ public partial class SyncedListView : ListView
                     Partner.TopItem = Partner.Items[position];
                 }
             }
-            else if (scrollEventType == SB_LINEUP || scrollEventType == SB_LINEDOWN ||
-                     scrollEventType == SB_PAGEUP || scrollEventType == SB_PAGEDOWN)
+            else if (scrollEventType is SB_LINEUP or SB_LINEDOWN or SB_PAGEUP or SB_PAGEDOWN)
             {
                 int currentIndex = TopItem?.Index ?? 0;
 

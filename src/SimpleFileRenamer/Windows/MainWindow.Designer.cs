@@ -53,8 +53,6 @@ partial class MainWindow
         RemoveLoadedFileMenuItem = new ToolStripMenuItem();
         PreviewListView = new SyncedListView();
         ButtonRename = new Button();
-        RenameWorker = new System.ComponentModel.BackgroundWorker();
-        UndoWorker = new System.ComponentModel.BackgroundWorker();
         HeaderMenuStrip.SuspendLayout();
         FooterStatusStrip.SuspendLayout();
         LoadedListViewContextMenu.SuspendLayout();
@@ -80,7 +78,7 @@ partial class MainWindow
         // OpenFolderToolStripMenuItem
         // 
         OpenFolderToolStripMenuItem.Name = "OpenFolderToolStripMenuItem";
-        OpenFolderToolStripMenuItem.Size = new Size(224, 26);
+        OpenFolderToolStripMenuItem.Size = new Size(183, 26);
         OpenFolderToolStripMenuItem.Text = "&Open Folder...";
         OpenFolderToolStripMenuItem.Click += OpenFolderToolStripMenuItem_Click;
         // 
@@ -88,30 +86,30 @@ partial class MainWindow
         // 
         closeFolderToolStripMenuItem.Enabled = false;
         closeFolderToolStripMenuItem.Name = "closeFolderToolStripMenuItem";
-        closeFolderToolStripMenuItem.Size = new Size(224, 26);
+        closeFolderToolStripMenuItem.Size = new Size(183, 26);
         closeFolderToolStripMenuItem.Text = "&Close Folder";
         // 
         // toolStripSeparator1
         // 
         toolStripSeparator1.Name = "toolStripSeparator1";
-        toolStripSeparator1.Size = new Size(221, 6);
+        toolStripSeparator1.Size = new Size(180, 6);
         // 
         // SettingsToolStripMenuItem
         // 
         SettingsToolStripMenuItem.Name = "SettingsToolStripMenuItem";
-        SettingsToolStripMenuItem.Size = new Size(224, 26);
+        SettingsToolStripMenuItem.Size = new Size(183, 26);
         SettingsToolStripMenuItem.Text = "&Settings";
         SettingsToolStripMenuItem.Click += SettingsToolStripMenuItem_Click;
         // 
         // toolStripSeparator2
         // 
         toolStripSeparator2.Name = "toolStripSeparator2";
-        toolStripSeparator2.Size = new Size(221, 6);
+        toolStripSeparator2.Size = new Size(180, 6);
         // 
         // ExitToolStripMenuItem
         // 
         ExitToolStripMenuItem.Name = "ExitToolStripMenuItem";
-        ExitToolStripMenuItem.Size = new Size(224, 26);
+        ExitToolStripMenuItem.Size = new Size(183, 26);
         ExitToolStripMenuItem.Text = "&Exit";
         ExitToolStripMenuItem.Click += ExitToolStripMenuItem_Click;
         // 
@@ -197,13 +195,13 @@ partial class MainWindow
         LoadedListViewContextMenu.ImageScalingSize = new Size(20, 20);
         LoadedListViewContextMenu.Items.AddRange(new ToolStripItem[] { RemoveLoadedFileMenuItem });
         LoadedListViewContextMenu.Name = "loadedFileContextMenu";
-        LoadedListViewContextMenu.Size = new Size(211, 56);
+        LoadedListViewContextMenu.Size = new Size(133, 28);
         LoadedListViewContextMenu.Opening += LoadedListViewContextMenu_Opening;
         // 
         // RemoveLoadedFileMenuItem
         // 
         RemoveLoadedFileMenuItem.Name = "RemoveLoadedFileMenuItem";
-        RemoveLoadedFileMenuItem.Size = new Size(210, 24);
+        RemoveLoadedFileMenuItem.Size = new Size(132, 24);
         RemoveLoadedFileMenuItem.Text = "Remove";
         RemoveLoadedFileMenuItem.Click += RemoveLoadedFileMenuItem_Click;
         // 
@@ -229,20 +227,6 @@ partial class MainWindow
         ButtonRename.Text = "►";
         ButtonRename.UseVisualStyleBackColor = true;
         ButtonRename.Click += ButtonRename_Click;
-        // 
-        // RenameWorker
-        // 
-        RenameWorker.WorkerReportsProgress = true;
-        RenameWorker.DoWork += RenameWorker_DoWork;
-        RenameWorker.ProgressChanged += RenameWorker_ProgressChanged;
-        RenameWorker.RunWorkerCompleted += RenameWorker_RunWorkerCompleted;
-        // 
-        // UndoWorker
-        // 
-        UndoWorker.WorkerReportsProgress = true;
-        UndoWorker.DoWork += UndoWorker_DoWork;
-        UndoWorker.ProgressChanged += UndoWorker_ProgressChanged;
-        UndoWorker.RunWorkerCompleted += UndoWorker_RunWorkerCompleted;
         // 
         // MainWindow
         // 
@@ -284,8 +268,6 @@ partial class MainWindow
     private Button ButtonRename;
     private ToolStripMenuItem EditToolStripMenuItem;
     private ToolStripMenuItem UndoToolStripMenuItem;
-    private System.ComponentModel.BackgroundWorker RenameWorker;
-    private System.ComponentModel.BackgroundWorker UndoWorker;
     private ContextMenuStrip LoadedListViewContextMenu;
     private ToolStripMenuItem RemoveLoadedFileMenuItem;
     private ToolStripMenuItem ToolsToolStripMenuItem;
