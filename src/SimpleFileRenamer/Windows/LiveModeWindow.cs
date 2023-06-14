@@ -10,10 +10,10 @@ public partial class LiveModeWindow : Form
 
     public LiveModeWindow(IWindowFactory windowFactory)
     {
-        Log.Verbose("Loading LiveMode");
-        InitializeComponent();
-
+        Log.Verbose("Initializing Live Mode Window");
         _windowFactory = windowFactory;
+
+        InitializeComponent();
 
         PeopleListView.View = View.Details;
     }
@@ -216,7 +216,6 @@ public partial class LiveModeWindow : Form
 
             if (!sessionWindow.IsDisposed)
             {
-                Log.Verbose("Showing session window");
                 _ = sessionWindow.ShowDialog(this, personName, selectedItem);
                 return;
             }

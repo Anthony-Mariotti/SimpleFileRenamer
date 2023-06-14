@@ -1,10 +1,11 @@
-﻿using SimpleFileRenamer.Abstractions.Services;
+﻿using Serilog;
+using SimpleFileRenamer.Abstractions.Services;
 
 namespace SimpleFileRenamer;
 public partial class SessionConfigurationWindow : Form
 {
     private readonly IConfigurationService _configuration;
-    private readonly IReadOnlyCollection<string> _possibleExtensions = new List<string>
+    private readonly IReadOnlyCollection<string> _supportedExtensions = new List<string>
     {
         ".jpeg",
         ".jpg",
@@ -22,10 +23,10 @@ public partial class SessionConfigurationWindow : Form
 
     public SessionConfigurationWindow(IConfigurationService configuration)
     {
-        InitializeComponent();
-
-        // Inject the configuration
+        Log.Verbose("Initializing Session Configuration Window");
         _configuration = configuration;
+
+        InitializeComponent();
 
         LoadConfiguration();
         LoadExtensionsIntoList();
@@ -48,7 +49,7 @@ public partial class SessionConfigurationWindow : Form
 
         // Load the fixed list of available extensions into AvailableExtensionsListBox
         AvailableExtensionsListBox.Items.Clear();
-        foreach (var extension in _possibleExtensions) // add more extensions here
+        foreach (var extension in _supportedExtensions) // add more extensions here
         {
             // Only add to AvailableExtensionsListBox if not already in SelectedExtensionsListBox
             if (!_configuration.Value.LiveMode.MonitoredExtensions.Contains(extension))

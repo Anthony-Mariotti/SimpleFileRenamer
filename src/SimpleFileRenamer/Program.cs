@@ -46,7 +46,7 @@ internal static class Program
         }
         catch (Exception ex)
         {
-            Log.Fatal(ex, "The application failed to start correctly");
+            Log.Fatal(ex, "An error occurred that has caused the application to exit");
         }
         finally
         {
@@ -61,10 +61,11 @@ internal static class Program
         services.AddSingleton<IWindowFactory, WindowFactory>();
 
         services.AddScoped<ISessionStateService, SessionStateService>();
+        services.AddScoped<IRenameService, RenameService>();
 
         // Available Windows
         services.AddTransient<MainWindow>();
-        services.AddTransient<FormatWindow>();
+        services.AddTransient<RenameConfigurationWindow>();
         services.AddTransient<LiveModeWindow>();
         services.AddTransient<SessionWindow>();
         services.AddTransient<SessionConfigurationWindow>();

@@ -8,5 +8,5 @@ public interface IWindowFactory
 
     LiveModeWindow CreateLiveModeWindow();
 
-    FormatWindow CreateFormatWindow();
+    RenameConfigurationWindow CreateRenameConfigurationWindow();
 }

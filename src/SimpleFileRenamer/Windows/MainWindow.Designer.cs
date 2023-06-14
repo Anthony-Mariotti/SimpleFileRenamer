@@ -34,8 +34,11 @@ partial class MainWindow
         HeaderMenuStrip = new MenuStrip();
         FileToolStripMenuItem = new ToolStripMenuItem();
         OpenFolderToolStripMenuItem = new ToolStripMenuItem();
+        closeFolderToolStripMenuItem = new ToolStripMenuItem();
+        toolStripSeparator1 = new ToolStripSeparator();
         SettingsToolStripMenuItem = new ToolStripMenuItem();
-        CloseToolStripMenuItem = new ToolStripMenuItem();
+        toolStripSeparator2 = new ToolStripSeparator();
+        ExitToolStripMenuItem = new ToolStripMenuItem();
         EditToolStripMenuItem = new ToolStripMenuItem();
         UndoToolStripMenuItem = new ToolStripMenuItem();
         RedoToolStripMenuItem = new ToolStripMenuItem();
@@ -46,7 +49,7 @@ partial class MainWindow
         RenameProgressBar = new ToolStripProgressBar();
         RenameStatusLabel = new ToolStripStatusLabel();
         LoadedListView = new SyncedListView();
-        LoadedFileContextMenu = new ContextMenuStrip(components);
+        LoadedListViewContextMenu = new ContextMenuStrip(components);
         RemoveLoadedFileMenuItem = new ToolStripMenuItem();
         PreviewListView = new SyncedListView();
         ButtonRename = new Button();
@@ -54,7 +57,7 @@ partial class MainWindow
         UndoWorker = new System.ComponentModel.BackgroundWorker();
         HeaderMenuStrip.SuspendLayout();
         FooterStatusStrip.SuspendLayout();
-        LoadedFileContextMenu.SuspendLayout();
+        LoadedListViewContextMenu.SuspendLayout();
         SuspendLayout();
         // 
         // HeaderMenuStrip
@@ -69,73 +72,91 @@ partial class MainWindow
         // 
         // FileToolStripMenuItem
         // 
-        FileToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { OpenFolderToolStripMenuItem, SettingsToolStripMenuItem, CloseToolStripMenuItem });
+        FileToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { OpenFolderToolStripMenuItem, closeFolderToolStripMenuItem, toolStripSeparator1, SettingsToolStripMenuItem, toolStripSeparator2, ExitToolStripMenuItem });
         FileToolStripMenuItem.Name = "FileToolStripMenuItem";
         FileToolStripMenuItem.Size = new Size(46, 24);
-        FileToolStripMenuItem.Text = "File";
+        FileToolStripMenuItem.Text = "&File";
         // 
         // OpenFolderToolStripMenuItem
         // 
         OpenFolderToolStripMenuItem.Name = "OpenFolderToolStripMenuItem";
-        OpenFolderToolStripMenuItem.Size = new Size(174, 26);
-        OpenFolderToolStripMenuItem.Text = "Open Folder";
-        OpenFolderToolStripMenuItem.Click += openFolderToolStripMenuItem_Click;
+        OpenFolderToolStripMenuItem.Size = new Size(224, 26);
+        OpenFolderToolStripMenuItem.Text = "&Open Folder...";
+        OpenFolderToolStripMenuItem.Click += OpenFolderToolStripMenuItem_Click;
+        // 
+        // closeFolderToolStripMenuItem
+        // 
+        closeFolderToolStripMenuItem.Enabled = false;
+        closeFolderToolStripMenuItem.Name = "closeFolderToolStripMenuItem";
+        closeFolderToolStripMenuItem.Size = new Size(224, 26);
+        closeFolderToolStripMenuItem.Text = "&Close Folder";
+        // 
+        // toolStripSeparator1
+        // 
+        toolStripSeparator1.Name = "toolStripSeparator1";
+        toolStripSeparator1.Size = new Size(221, 6);
         // 
         // SettingsToolStripMenuItem
         // 
         SettingsToolStripMenuItem.Name = "SettingsToolStripMenuItem";
-        SettingsToolStripMenuItem.Size = new Size(174, 26);
-        SettingsToolStripMenuItem.Text = "Settings";
-        SettingsToolStripMenuItem.Click += formatToolStripMenuItem_Click;
+        SettingsToolStripMenuItem.Size = new Size(224, 26);
+        SettingsToolStripMenuItem.Text = "&Settings";
+        SettingsToolStripMenuItem.Click += SettingsToolStripMenuItem_Click;
         // 
-        // CloseToolStripMenuItem
+        // toolStripSeparator2
         // 
-        CloseToolStripMenuItem.Name = "CloseToolStripMenuItem";
-        CloseToolStripMenuItem.Size = new Size(174, 26);
-        CloseToolStripMenuItem.Text = "Close";
-        CloseToolStripMenuItem.Click += closeToolStripMenuItem_Click;
+        toolStripSeparator2.Name = "toolStripSeparator2";
+        toolStripSeparator2.Size = new Size(221, 6);
+        // 
+        // ExitToolStripMenuItem
+        // 
+        ExitToolStripMenuItem.Name = "ExitToolStripMenuItem";
+        ExitToolStripMenuItem.Size = new Size(224, 26);
+        ExitToolStripMenuItem.Text = "&Exit";
+        ExitToolStripMenuItem.Click += ExitToolStripMenuItem_Click;
         // 
         // EditToolStripMenuItem
         // 
         EditToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { UndoToolStripMenuItem, RedoToolStripMenuItem });
         EditToolStripMenuItem.Name = "EditToolStripMenuItem";
         EditToolStripMenuItem.Size = new Size(49, 24);
-        EditToolStripMenuItem.Text = "Edit";
+        EditToolStripMenuItem.Text = "&Edit";
         // 
         // UndoToolStripMenuItem
         // 
         UndoToolStripMenuItem.Enabled = false;
         UndoToolStripMenuItem.Name = "UndoToolStripMenuItem";
         UndoToolStripMenuItem.Size = new Size(128, 26);
-        UndoToolStripMenuItem.Text = "Undo";
-        UndoToolStripMenuItem.Click += undoToolStripMenuItem_Click;
+        UndoToolStripMenuItem.Text = "&Undo";
+        UndoToolStripMenuItem.Click += UndoToolStripMenuItem_Click;
         // 
         // RedoToolStripMenuItem
         // 
         RedoToolStripMenuItem.Enabled = false;
         RedoToolStripMenuItem.Name = "RedoToolStripMenuItem";
         RedoToolStripMenuItem.Size = new Size(128, 26);
-        RedoToolStripMenuItem.Text = "Redo";
+        RedoToolStripMenuItem.Text = "&Redo";
+        RedoToolStripMenuItem.Click += RedoToolStripMenuItem_Click;
         // 
         // ToolsToolStripMenuItem
         // 
         ToolsToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { LiveModeToolStripMenuItem });
         ToolsToolStripMenuItem.Name = "ToolsToolStripMenuItem";
         ToolsToolStripMenuItem.Size = new Size(58, 24);
-        ToolsToolStripMenuItem.Text = "Tools";
+        ToolsToolStripMenuItem.Text = "&Tools";
         // 
         // LiveModeToolStripMenuItem
         // 
         LiveModeToolStripMenuItem.Name = "LiveModeToolStripMenuItem";
         LiveModeToolStripMenuItem.Size = new Size(161, 26);
-        LiveModeToolStripMenuItem.Text = "Live Mode";
-        LiveModeToolStripMenuItem.Click += liveModeToolStripMenuItem_Click;
+        LiveModeToolStripMenuItem.Text = "&Live Mode";
+        LiveModeToolStripMenuItem.Click += LiveModeToolStripMenuItem_Click;
         // 
         // AboutToolStripMenuItem
         // 
         AboutToolStripMenuItem.Name = "AboutToolStripMenuItem";
         AboutToolStripMenuItem.Size = new Size(64, 24);
-        AboutToolStripMenuItem.Text = "About";
+        AboutToolStripMenuItem.Text = "&About";
         // 
         // FooterStatusStrip
         // 
@@ -161,29 +182,30 @@ partial class MainWindow
         // LoadedListView
         // 
         LoadedListView.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left;
-        LoadedListView.ContextMenuStrip = LoadedFileContextMenu;
+        LoadedListView.ContextMenuStrip = LoadedListViewContextMenu;
         LoadedListView.Location = new Point(12, 31);
         LoadedListView.Name = "LoadedListView";
         LoadedListView.Partner = null;
         LoadedListView.Size = new Size(450, 600);
         LoadedListView.TabIndex = 2;
         LoadedListView.UseCompatibleStateImageBehavior = false;
-        LoadedListView.SelectedIndexChanged += loadedListView_SelectedIndexChanged;
+        LoadedListView.SelectedIndexChanged += LoadedListView_SelectedIndexChanged;
+        LoadedListView.KeyUp += LoadedListView_KeyUp;
         // 
-        // LoadedFileContextMenu
+        // LoadedListViewContextMenu
         // 
-        LoadedFileContextMenu.ImageScalingSize = new Size(20, 20);
-        LoadedFileContextMenu.Items.AddRange(new ToolStripItem[] { RemoveLoadedFileMenuItem });
-        LoadedFileContextMenu.Name = "loadedFileContextMenu";
-        LoadedFileContextMenu.Size = new Size(133, 28);
-        LoadedFileContextMenu.Opening += loadedFileContextMenu_Opening;
+        LoadedListViewContextMenu.ImageScalingSize = new Size(20, 20);
+        LoadedListViewContextMenu.Items.AddRange(new ToolStripItem[] { RemoveLoadedFileMenuItem });
+        LoadedListViewContextMenu.Name = "loadedFileContextMenu";
+        LoadedListViewContextMenu.Size = new Size(211, 56);
+        LoadedListViewContextMenu.Opening += LoadedListViewContextMenu_Opening;
         // 
         // RemoveLoadedFileMenuItem
         // 
         RemoveLoadedFileMenuItem.Name = "RemoveLoadedFileMenuItem";
-        RemoveLoadedFileMenuItem.Size = new Size(132, 24);
+        RemoveLoadedFileMenuItem.Size = new Size(210, 24);
         RemoveLoadedFileMenuItem.Text = "Remove";
-        RemoveLoadedFileMenuItem.Click += removeLoadedFileMenuItem_Click;
+        RemoveLoadedFileMenuItem.Click += RemoveLoadedFileMenuItem_Click;
         // 
         // PreviewListView
         // 
@@ -206,21 +228,21 @@ partial class MainWindow
         ButtonRename.TabIndex = 4;
         ButtonRename.Text = "►";
         ButtonRename.UseVisualStyleBackColor = true;
-        ButtonRename.Click += buttonRename_Click;
+        ButtonRename.Click += ButtonRename_Click;
         // 
         // RenameWorker
         // 
         RenameWorker.WorkerReportsProgress = true;
-        RenameWorker.DoWork += renameWorker_DoWork;
-        RenameWorker.ProgressChanged += renameWorker_ProgressChanged;
-        RenameWorker.RunWorkerCompleted += renameWorker_RunWorkerCompleted;
+        RenameWorker.DoWork += RenameWorker_DoWork;
+        RenameWorker.ProgressChanged += RenameWorker_ProgressChanged;
+        RenameWorker.RunWorkerCompleted += RenameWorker_RunWorkerCompleted;
         // 
         // UndoWorker
         // 
         UndoWorker.WorkerReportsProgress = true;
-        UndoWorker.DoWork += undoWorker_DoWork;
-        UndoWorker.ProgressChanged += undoWorker_ProgressChanged;
-        UndoWorker.RunWorkerCompleted += undoWorker_RunWorkerCompleted;
+        UndoWorker.DoWork += UndoWorker_DoWork;
+        UndoWorker.ProgressChanged += UndoWorker_ProgressChanged;
+        UndoWorker.RunWorkerCompleted += UndoWorker_RunWorkerCompleted;
         // 
         // MainWindow
         // 
@@ -242,7 +264,7 @@ partial class MainWindow
         HeaderMenuStrip.PerformLayout();
         FooterStatusStrip.ResumeLayout(false);
         FooterStatusStrip.PerformLayout();
-        LoadedFileContextMenu.ResumeLayout(false);
+        LoadedListViewContextMenu.ResumeLayout(false);
         ResumeLayout(false);
         PerformLayout();
     }
@@ -252,7 +274,7 @@ partial class MainWindow
     private MenuStrip HeaderMenuStrip;
     private ToolStripMenuItem FileToolStripMenuItem;
     private ToolStripMenuItem OpenFolderToolStripMenuItem;
-    private ToolStripMenuItem CloseToolStripMenuItem;
+    private ToolStripMenuItem ExitToolStripMenuItem;
     private ToolStripMenuItem AboutToolStripMenuItem;
     private StatusStrip FooterStatusStrip;
     private ToolStripProgressBar RenameProgressBar;
@@ -264,10 +286,13 @@ partial class MainWindow
     private ToolStripMenuItem UndoToolStripMenuItem;
     private System.ComponentModel.BackgroundWorker RenameWorker;
     private System.ComponentModel.BackgroundWorker UndoWorker;
-    private ContextMenuStrip LoadedFileContextMenu;
+    private ContextMenuStrip LoadedListViewContextMenu;
     private ToolStripMenuItem RemoveLoadedFileMenuItem;
     private ToolStripMenuItem ToolsToolStripMenuItem;
     private ToolStripMenuItem LiveModeToolStripMenuItem;
     private ToolStripMenuItem SettingsToolStripMenuItem;
     private ToolStripMenuItem RedoToolStripMenuItem;
+    private ToolStripSeparator toolStripSeparator1;
+    private ToolStripMenuItem closeFolderToolStripMenuItem;
+    private ToolStripSeparator toolStripSeparator2;
 }

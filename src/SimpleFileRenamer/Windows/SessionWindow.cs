@@ -19,11 +19,11 @@ public partial class SessionWindow : BaseWindow
 
     public SessionWindow(IConfigurationService configuration, ISessionStateService session)
     {
-        Log.Verbose("Loading session window");
-        InitializeComponent();
-
+        Log.Verbose("Initializing Session Window");
         _configuration = configuration;
         _session = session;
+
+        InitializeComponent();
     }
 
     public DialogResult ShowDialog(IWin32Window parent, string personName, ListViewItem personListItem)

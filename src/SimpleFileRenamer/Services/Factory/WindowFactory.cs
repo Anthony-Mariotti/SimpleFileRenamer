@@ -11,8 +11,8 @@ public class WindowFactory : IWindowFactory
         _serviceProvider = serviceProvider;
     }
 
-    public FormatWindow CreateFormatWindow() =>
-        _serviceProvider.GetRequiredService<FormatWindow>();
+    public RenameConfigurationWindow CreateRenameConfigurationWindow() =>
+        _serviceProvider.GetRequiredService<RenameConfigurationWindow>();
 
     public LiveModeWindow CreateLiveModeWindow() =>
         _serviceProvider.GetRequiredService<LiveModeWindow>();

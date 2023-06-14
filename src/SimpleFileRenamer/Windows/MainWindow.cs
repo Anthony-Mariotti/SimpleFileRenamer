@@ -1,5 +1,7 @@
 using Serilog;
 using SimpleFileRenamer.Abstractions.Factory;
+using SimpleFileRenamer.Abstractions.Services;
+using SimpleFileRenamer.Services;
 using System.ComponentModel;
 using System.Diagnostics;
 
@@ -8,20 +10,18 @@ namespace SimpleFileRenamer;
 public partial class MainWindow : Form
 {
     private readonly IWindowFactory _windowFactory;
-    private Stack<Dictionary<string, string>> renamedFileStack = new Stack<Dictionary<string, string>>();
+    private readonly IRenameService _renameService;
 
-    private char Delimiter { get; set; }
-    private string Format { get; set; }
+    private readonly Stack<List<FileRename>> _undoActions = new Stack<List<FileRename>>();
+    private readonly Stack<List<FileRename>> _redoActions = new Stack<List<FileRename>>();
 
-    private string? DirectoryPath { get; set; }
-
-    public MainWindow() { }
-
-    public MainWindow(IWindowFactory windowFactory)
+    public MainWindow(IWindowFactory windowFactory, IRenameService renameService)
     {
-        InitializeComponent();
-        Log.Verbose("Loading MainWindow");
+        Log.Verbose("Initializing Main Window");
         _windowFactory = windowFactory;
+        _renameService = renameService;
+
+        InitializeComponent();
 
         LoadedListView.Partner = PreviewListView;
         PreviewListView.Partner = LoadedListView;
@@ -31,34 +31,15 @@ public partial class MainWindow : Form
 
         PreviewListView.View = View.Details;
         PreviewListView.Columns.Add("Rename Preview", PreviewListView.Width - 25);
-
-
-        if (char.TryParse(Settings.Default.Delimiter, out var delimiter))
-        {
-            Log.Debug("Delimiter parsed to {Delimiter} successfully", delimiter);
-            Delimiter = delimiter;
-        }
-        else
-        {
-            if (Settings.Default.Delimiter == "[SPACE]")
-            {
-                Log.Debug("Delimiter parsed to {Delimiter} successfully", "[SPACE]");
-                Delimiter = ' ';
-            }
-            else
-            {
-                Log.Debug("Delimiter was not able to be read and hard reest", delimiter);
-                var hardResetDelimiter = '-';
-                Delimiter = hardResetDelimiter;
-                Settings.Default.Delimiter = hardResetDelimiter.ToString();
-                Settings.Default.Save();
-            }
-        }
-
-        Format = Settings.Default.Format;
     }
 
-    private void openFolderToolStripMenuItem_Click(object sender, EventArgs e)
+    #region MainWindow
+    private void MainWindow_FormClosing(object sender, FormClosingEventArgs e) =>
+        Log.Information("Application Shutting Down");
+    #endregion
+
+    #region MenuStrip
+    private void OpenFolderToolStripMenuItem_Click(object sender, EventArgs e)
     {
         using var folderDialog = new FolderBrowserDialog
         {
@@ -69,15 +50,63 @@ public partial class MainWindow : Form
         if (folderDialog.ShowDialog() == DialogResult.OK)
         {
             Log.Debug("Selected {Folder} to load from", folderDialog.SelectedPath);
-            DirectoryPath = folderDialog.SelectedPath;
-            LoadFromDirectory(DirectoryPath);
+            _renameService.SelectDirectory(folderDialog.SelectedPath);
 
+            LoadFromDirectory();
         }
     }
 
-    private void closeToolStripMenuItem_Click(object sender, EventArgs e) => Close();
+    private void SettingsToolStripMenuItem_Click(object sender, EventArgs e)
+    {
+        Log.Verbose("Attempting to open Format Window");
+        using var configurationWindow = _windowFactory.CreateRenameConfigurationWindow();
+        _ = configurationWindow.ShowDialog();
 
-    private void loadedListView_SelectedIndexChanged(object sender, EventArgs e)
+        LoadFromDirectory();
+    }
+
+    private void ExitToolStripMenuItem_Click(object sender, EventArgs e) => Close();
+
+    private void UndoToolStripMenuItem_Click(object sender, EventArgs e)
+    {
+        if (UndoWorker.IsBusy)
+        {
+            return;
+        }
+
+        if (_undoActions.TryPop(out var undoRename))
+        {
+            _redoActions.Push(undoRename);
+            RedoToolStripMenuItem.Enabled = true;
+
+            RenameProgressBar.Value = 0;
+            RenameProgressBar.Maximum = undoRename.Count;
+
+            UndoWorker.RunWorkerAsync(undoRename);
+        }
+
+        if (_undoActions.Count <= 0)
+        {
+            UndoToolStripMenuItem.Enabled = false;
+        }
+    }
+
+    private void LiveModeToolStripMenuItem_Click(object sender, EventArgs e)
+    {
+        Hide();
+        using var liveModeDialog = _windowFactory.CreateLiveModeWindow();
+        liveModeDialog.FormClosed += (s, e) => Show();
+        liveModeDialog.ShowDialog();
+    }
+
+    private void RedoToolStripMenuItem_Click(object sender, EventArgs e)
+    {
+
+    }
+    #endregion
+
+    #region LoadedListView
+    private void LoadedListView_SelectedIndexChanged(object sender, EventArgs e)
     {
         PreviewListView.SelectedItems.Clear();
 
@@ -91,151 +120,215 @@ public partial class MainWindow : Form
         }
     }
 
-    private void buttonRename_Click(object sender, EventArgs e)
+    private void LoadedListView_KeyUp(object sender, KeyEventArgs e)
     {
-        if (!RenameWorker.IsBusy && LoadedListView.Items.Count > 0)
+        if (e.KeyCode == Keys.Delete)
         {
-            RenameProgressBar.Maximum = LoadedListView.Items.Count;
-            RenameProgressBar.Value = 0;
-
-            // Create lists of file paths and new filenames in the UI thread
-            var filePaths = new List<string>();
-            var newFilenames = new List<string>();
-
-            foreach (ListViewItem item in LoadedListView.Items)
-            {
-                filePaths.Add((string)item.Tag);
-            }
-
-            foreach (ListViewItem item in PreviewListView.Items)
-            {
-                newFilenames.Add(item.Text);
-            }
-
-            // Pass the file paths to the BackgroundWorker
-            RenameWorker.RunWorkerAsync(Tuple.Create(filePaths, newFilenames));
+            RemoveSelectedItems();
+            return;
         }
     }
+    #endregion
 
-    private void undoToolStripMenuItem_Click(object sender, EventArgs e)
+    #region RenameWorker
+    private void RenameWorker_DoWork(object sender, DoWorkEventArgs e)
     {
-        if (UndoWorker.IsBusy)
+        Log.Information("Starting processing of renaming files");
+        var stopwatch = new Stopwatch();
+        stopwatch.Start();
+
+        var currentRename = new List<FileRename>();
+
+        var renameList = (IEnumerable<FileRename?>?)e.Argument;
+
+        if (renameList == null)
         {
             return;
         }
 
-        if (renamedFileStack.TryPop(out var undoRename))
+        var i = 0;
+        foreach (var item in renameList)
         {
-            RenameProgressBar.Value = 0;
-            RenameProgressBar.Maximum = undoRename.Count;
-
-            UndoWorker.RunWorkerAsync(undoRename);
-        }
-
-        if (renamedFileStack.Count <= 0)
-        {
-            UndoToolStripMenuItem.Enabled = false;
-        }
-    }
-
-    private void renameWorker_DoWork(object sender, DoWorkEventArgs e)
-    {
-        var currentRename = new Dictionary<string, string>();
-
-        var args = (Tuple<List<string>, List<string>>)e.Argument!;
-
-        var filePaths = args.Item1;
-        var newFilenames = args.Item2;
-
-        for (var i = 0; i < filePaths.Count; i++)
-        {
-            var originalFilePath = filePaths[i];
-
-            var newFilePath = Path.Combine(
-                Path.GetDirectoryName(originalFilePath)!,
-                newFilenames[i]);
-
-            currentRename[originalFilePath] = newFilePath;
+            if (item == null)
+            {
+                i++;
+                continue;
+            }
 
             try
             {
-                Debug.WriteLine($"Renaming {originalFilePath} -> {newFilePath}", "[FileRenameWorker]");
-                RenameWorker.ReportProgress(
-                    i + 1, $"{Path.GetFileName(originalFilePath)} -> {Path.GetFileName(newFilePath)}");
+                Log.Verbose("Renaming '{OriginalName}' -> '{NewName}'", item.OriginalName, item.NewName);
+                RenameWorker.ReportProgress(i + 1, $"{item.OriginalName} -> {item.NewName}");
 
-                //Task.Delay(500).Wait(); // Simulated Rename
-                File.Move(originalFilePath, newFilePath);
+                //Task.Delay(125).Wait(); // Simulated rename
+
+                // Rename the file
+                File.Move(item.OriginalPath, item.NewPath);
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Failed rename {originalFilePath} -> {newFilePath} - {ex.Message}", "[FileRenameWorker]");
+                Log.Error(ex, "Failed rename '{OriginalPath}' -> '{NewPath}'", item.OriginalPath, item.NewPath);
             }
+            finally
+            {
+                currentRename.Add(item);
+            }
+
+            i++;
         }
 
+        stopwatch.Stop();
+        Log.Information("Finished renaming of {Count} files in {ElapsedMilliseconds}ms", i, stopwatch.ElapsedMilliseconds);
+
+        RenameWorker.ReportProgress(i, $"Renamed {i} files in {stopwatch.ElapsedMilliseconds}ms");
         e.Result = currentRename;
     }
 
-    private void renameWorker_ProgressChanged(object sender, ProgressChangedEventArgs e)
+    private void RenameWorker_ProgressChanged(object sender, ProgressChangedEventArgs e)
     {
         RenameProgressBar.Value = e.ProgressPercentage;
         RenameStatusLabel.Text = e.UserState!.ToString();
     }
 
-    private void renameWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+    private void RenameWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
     {
-        renamedFileStack.Push((Dictionary<string, string>)e.Result!);
-        RenameStatusLabel.Text = "Done";
+        _undoActions.Push((List<FileRename>)e.Result!);
         ButtonRename.Enabled = false;
         UndoToolStripMenuItem.Enabled = true;
 
         LoadedListView.Items.Clear();
         PreviewListView.Items.Clear();
     }
+    #endregion
 
-    private void undoWorker_DoWork(object sender, DoWorkEventArgs e)
+    #region UndoWorker
+    private void UndoWorker_DoWork(object sender, DoWorkEventArgs e)
     {
-        var undoRename = (Dictionary<string, string>)e.Argument!;
+        Log.Information("Starting processing of undoing last rename");
+        var stopwatch = new Stopwatch();
+        stopwatch.Start();
+
+        var undoRename = (List<FileRename>)e.Argument!;
 
         RenameProgressBar.Value = 0;
         RenameProgressBar.Maximum = undoRename.Count;
 
-        var index = 0;
+        var i = 0;
         foreach (var item in undoRename)
         {
-            var newFilePath = item.Value;
-            var originalFilePath = item.Key;
-
             try
             {
-                Debug.WriteLine($"Undo renaming {newFilePath} -> {originalFilePath}", "[UndoRenameWorker]");
-                UndoWorker.ReportProgress(
-                    index + 1, $"{Path.GetFileName(originalFilePath)} -> {Path.GetFileName(newFilePath)}");
+                Log.Verbose("Undoing rename '{NewName}' -> '{OriginalName}'", item.NewName, item.OriginalName);
+                UndoWorker.ReportProgress(i + 1, $"{item.NewName} -> {item.OriginalName}");
 
-                //Task.Delay(500).Wait(); // Simulated Rename
-                File.Move(newFilePath, originalFilePath);
+                //Task.Delay(125).Wait(); // Simulated rename
+
+                // Undo rename
+                File.Move(item.NewPath, item.OriginalPath);
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Failed undo rename {newFilePath} -> {newFilePath} - {ex.Message}", "[UndoRenameWorker]");
+                Log.Error(ex, "Failed to undo rename '{NewName}' -> '{OriginalName}'", item.NewName, item.OriginalName);
             }
 
-            index++;
+            i++;
         }
+
+        stopwatch.Stop();
+        Log.Information("Finished undoing rename of {Count} files in {ElapsedMilliseconds}ms", i, stopwatch.ElapsedMilliseconds);
+
+        UndoWorker.ReportProgress(i, $"Undid {i} files in {stopwatch.ElapsedMilliseconds}ms");
     }
 
-    private void undoWorker_ProgressChanged(object sender, ProgressChangedEventArgs e)
+    private void UndoWorker_ProgressChanged(object sender, ProgressChangedEventArgs e)
     {
         RenameProgressBar.Value = e.ProgressPercentage;
         RenameStatusLabel.Text = e.UserState!.ToString();
     }
 
-    private void undoWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+    private void UndoWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
     {
-        RenameStatusLabel.Text = "Done";
         ButtonRename.Enabled = false;
     }
+    #endregion
 
-    private void removeLoadedFileMenuItem_Click(object sender, EventArgs e)
+    #region LoadedListViewContextMenu
+    private void LoadedListViewContextMenu_Opening(object sender, CancelEventArgs e) =>
+        RemoveLoadedFileMenuItem.Enabled = LoadedListView.SelectedItems.Count != 0;
+
+    private void RemoveLoadedFileMenuItem_Click(object sender, EventArgs e) =>
+        RemoveSelectedItems();
+    #endregion
+
+    #region UI Buttons
+    private void ButtonRename_Click(object sender, EventArgs e)
+    {
+        if (!RenameWorker.IsBusy && LoadedListView.Items.Count > 0)
+        {
+            RenameProgressBar.Maximum = LoadedListView.Items.Count;
+            RenameProgressBar.Value = 0;
+
+            // Create a list of the file rename data within the UI thread.
+            var renameList = new List<FileRename?>();
+            foreach (ListViewItem item in LoadedListView.Items)
+            {
+                renameList.Add(item.Tag as FileRename);
+            }
+
+            // Pass the list items to the BackgroundWorker
+            RenameWorker.RunWorkerAsync(renameList);
+        }
+    }
+    #endregion
+
+    #region Internal
+    private void LoadFromDirectory()
+    {
+        var stopwatch = Stopwatch.StartNew();
+
+        RenameStatusLabel.Text = $"Loading {_renameService.SelectedDirectory}";
+        RenameProgressBar.Value = 0;
+
+        var fileData = _renameService.LoadDirectory(
+            (progress, total, fileName) =>
+            {
+                if (RenameProgressBar.Value == 0)
+                {
+                    RenameProgressBar.Maximum = total;
+                }
+
+                RenameStatusLabel.Text = $"Loading {fileName}";
+                RenameProgressBar.Value = progress;
+            });
+
+        // Clear the ListView before adding new items
+        LoadedListView.Items.Clear();
+        PreviewListView.Items.Clear();
+
+        foreach (var data in fileData)
+        {
+            var originalItem = new ListViewItem(data.OriginalName)
+            {
+                Tag = data
+            };
+
+            var newItem = new ListViewItem(data.NewName)
+            {
+                Tag = data
+            };
+
+            //Task.Delay(125).Wait(); // Simulate
+
+            LoadedListView.Items.Add(originalItem);
+            PreviewListView.Items.Add(newItem);
+        }
+        stopwatch.Stop();
+
+        RenameStatusLabel.Text = $"Loaded {LoadedListView.Items.Count} files in {stopwatch.ElapsedMilliseconds}ms";
+        ButtonRename.Enabled = true;
+    }
+
+    private void RemoveSelectedItems()
     {
         if (LoadedListView.SelectedItems.Count > 0)
         {
@@ -248,147 +341,5 @@ public partial class MainWindow : Form
             }
         }
     }
-
-    private void loadedFileContextMenu_Opening(object sender, CancelEventArgs e)
-    {
-        if (LoadedListView.SelectedItems.Count == 0)
-        {
-            RemoveLoadedFileMenuItem.Enabled = false;
-        }
-        else
-        {
-            RemoveLoadedFileMenuItem.Enabled = true;
-        }
-    }
-
-    private void formatToolStripMenuItem_Click(object sender, EventArgs e)
-    {
-        Log.Verbose("Attempting to open Format Window");
-        var formatDialog = new FormatWindow(Delimiter, Format);
-
-        if (formatDialog.ShowDialog() == DialogResult.OK)
-        {
-            if (formatDialog.Delimiter.HasValue &&
-                char.IsWhiteSpace(formatDialog.Delimiter.Value))
-            {
-                Log.Debug("Format Window returned with '{Delimiter}' delimiter", "[SPACE]");
-                Delimiter = formatDialog.Delimiter.Value;
-                Settings.Default.Delimiter = "[SPACE]";
-            }
-            else if (formatDialog.Delimiter.HasValue)
-            {
-                Log.Debug("Format Window returned with '{Delimiter}' delimiter", formatDialog.Delimiter);
-                Delimiter = formatDialog.Delimiter.Value;
-                Settings.Default.Delimiter = formatDialog.Delimiter.ToString();
-            }
-
-            if (Format != formatDialog.Format && !string.IsNullOrWhiteSpace(DirectoryPath))
-            {
-                Log.Debug("New format '{Format}' has been chosen", formatDialog.Format);
-                Format = formatDialog.Format ?? Settings.Default.Format;
-                Settings.Default.Format = Format;
-
-                LoadFromDirectory(DirectoryPath);
-            }
-
-            Settings.Default.Save();
-
-            return;
-        }
-
-        Debug.WriteLine("Cancelled format settings", "[FormatMenuItem]");
-    }
-
-    private void LoadFromDirectory(string directoryPath)
-    {
-        if (string.IsNullOrWhiteSpace(directoryPath))
-        {
-            Log.Verbose("Skipping loading from directory as directory path null or whitespace");
-            return;
-        }
-
-        var files = Directory.GetFiles(directoryPath);
-
-        // Clear the ListView before adding new items
-        LoadedListView.Items.Clear();
-        PreviewListView.Items.Clear();
-
-        RenameStatusLabel.Text = $"Loading {directoryPath}";
-        RenameProgressBar.Maximum = files.Length;
-        RenameProgressBar.Value = 0;
-
-        Log.Verbose("Begining file load into the views");
-        // Add the files to the ListView
-        foreach (var file in files)
-        {
-            //Task.Delay(100).Wait(); // Simulate
-            Debug.WriteLine(file, "[FileLoading]");
-            RenameProgressBar.Value++;
-
-            // Create a new ListViewItem with the filename
-            var item = new ListViewItem(Path.GetFileName(file))
-            {
-                // Store the full file path in the Tag property
-                Tag = file
-            };
-
-            // Add the item to the ListView
-            LoadedListView.Items.Add(item);
-
-            // Generate new file name using the pattern provided by the user
-            var originalFileName = Path.GetFileNameWithoutExtension(file);
-            var extension = Path.GetExtension(file);
-            var newNameFormat = $"{Format}{extension}";
-
-            // Split the original filename into firstname and lastname
-            var nameParts = SmartSplit(originalFileName, Delimiter);
-
-            if (nameParts.Length > 0)
-            {
-                // Generate new file name using the format "qr_firstname_lastname.png"
-                var newFileName = string.Format(newNameFormat, nameParts).ToLower();
-
-                // Create a new ListViewItem with the filename
-                var newItem = new ListViewItem(newFileName)
-                {
-                    Tag = file
-                };
-
-                // Add the item to the ListView
-                PreviewListView.Items.Add(newItem);
-            }
-            else
-            {
-                Log.Debug("Failed to split {FileName} into supplied template", originalFileName);
-                PreviewListView.Items.Add(new ListViewItem
-                {
-                    Tag = file
-                });
-            }
-        }
-
-        RenameProgressBar.Value = 0;
-        RenameStatusLabel.Text = "Done";
-        ButtonRename.Enabled = true;
-    }
-
-    private string[] SmartSplit(string input, char delimiter)
-    {
-        var result = input.Split(delimiter, StringSplitOptions.RemoveEmptyEntries);
-
-        return result.Length == 1 && result[0] == input
-            ? Array.Empty<string>()
-            : result;
-    }
-
-    private void liveModeToolStripMenuItem_Click(object sender, EventArgs e)
-    {
-        Hide();
-        using var liveModeDialog = _windowFactory.CreateLiveModeWindow();
-        liveModeDialog.FormClosed += (s, e) => Show();
-        liveModeDialog.ShowDialog();
-    }
-
-    private void MainWindow_FormClosing(object sender, FormClosingEventArgs e) =>
-        Log.Information("Application Shutting Down");
+    #endregion
 }

@@ -34,7 +34,7 @@ partial class SessionConfigurationWindow
         DestinationFolderTextBox = new TextBox();
         BrowseWatchedFolderButton = new Button();
         BrowseDestinationFolderButton = new Button();
-        CancelButton = new Button();
+        CancelEditButton = new Button();
         SaveButton = new Button();
         AvailableExtensionsListBox = new ListBox();
         label3 = new Label();
@@ -102,14 +102,14 @@ partial class SessionConfigurationWindow
         // 
         // CancelButton
         // 
-        CancelButton.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
-        CancelButton.Location = new Point(12, 366);
-        CancelButton.Name = "CancelButton";
-        CancelButton.Size = new Size(94, 29);
-        CancelButton.TabIndex = 6;
-        CancelButton.Text = "Cancel";
-        CancelButton.UseVisualStyleBackColor = true;
-        CancelButton.Click += CancelButton_Click;
+        CancelEditButton.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+        CancelEditButton.Location = new Point(12, 366);
+        CancelEditButton.Name = "CancelButton";
+        CancelEditButton.Size = new Size(94, 29);
+        CancelEditButton.TabIndex = 6;
+        CancelEditButton.Text = "Cancel";
+        CancelEditButton.UseVisualStyleBackColor = true;
+        CancelEditButton.Click += CancelButton_Click;
         // 
         // SaveButton
         // 
@@ -191,7 +191,7 @@ partial class SessionConfigurationWindow
         Controls.Add(label3);
         Controls.Add(AvailableExtensionsListBox);
         Controls.Add(SaveButton);
-        Controls.Add(CancelButton);
+        Controls.Add(CancelEditButton);
         Controls.Add(BrowseDestinationFolderButton);
         Controls.Add(BrowseWatchedFolderButton);
         Controls.Add(DestinationFolderTextBox);
@@ -215,7 +215,7 @@ partial class SessionConfigurationWindow
     private TextBox DestinationFolderTextBox;
     private Button BrowseWatchedFolderButton;
     private Button BrowseDestinationFolderButton;
-    private Button CancelButton;
+    private Button CancelEditButton;
     private Button SaveButton;
     private ListBox AvailableExtensionsListBox;
     private Label label3;
