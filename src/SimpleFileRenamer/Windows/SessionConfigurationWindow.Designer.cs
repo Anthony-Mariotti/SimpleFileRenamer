@@ -42,6 +42,7 @@ partial class SessionConfigurationWindow
         SelectExtensionButton = new Button();
         RemoveExtensionButton = new Button();
         label4 = new Label();
+        DeleteCacheButton = new Button();
         SuspendLayout();
         // 
         // label1
@@ -100,11 +101,11 @@ partial class SessionConfigurationWindow
         BrowseDestinationFolderButton.UseVisualStyleBackColor = true;
         BrowseDestinationFolderButton.Click += BrowseDestinationFolderButton_Click;
         // 
-        // CancelButton
+        // CancelEditButton
         // 
         CancelEditButton.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
-        CancelEditButton.Location = new Point(12, 366);
-        CancelEditButton.Name = "CancelButton";
+        CancelEditButton.Location = new Point(12, 396);
+        CancelEditButton.Name = "CancelEditButton";
         CancelEditButton.Size = new Size(94, 29);
         CancelEditButton.TabIndex = 6;
         CancelEditButton.Text = "Cancel";
@@ -114,7 +115,7 @@ partial class SessionConfigurationWindow
         // SaveButton
         // 
         SaveButton.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
-        SaveButton.Location = new Point(112, 366);
+        SaveButton.Location = new Point(112, 396);
         SaveButton.Name = "SaveButton";
         SaveButton.Size = new Size(94, 29);
         SaveButton.TabIndex = 7;
@@ -178,12 +179,23 @@ partial class SessionConfigurationWindow
         label4.TabIndex = 13;
         label4.Text = "Selected Extensions";
         // 
+        // DeleteCacheButton
+        // 
+        DeleteCacheButton.Location = new Point(12, 355);
+        DeleteCacheButton.Name = "DeleteCacheButton";
+        DeleteCacheButton.Size = new Size(403, 29);
+        DeleteCacheButton.TabIndex = 14;
+        DeleteCacheButton.Text = "Delete Cache";
+        DeleteCacheButton.UseVisualStyleBackColor = true;
+        DeleteCacheButton.Click += DeleteCacheButton_Click;
+        // 
         // SessionConfigurationWindow
         // 
         AcceptButton = SaveButton;
         AutoScaleDimensions = new SizeF(8F, 20F);
         AutoScaleMode = AutoScaleMode.Font;
-        ClientSize = new Size(427, 407);
+        ClientSize = new Size(427, 437);
+        Controls.Add(DeleteCacheButton);
         Controls.Add(label4);
         Controls.Add(RemoveExtensionButton);
         Controls.Add(SelectExtensionButton);
@@ -223,4 +235,5 @@ partial class SessionConfigurationWindow
     private Button SelectExtensionButton;
     private Button RemoveExtensionButton;
     private Label label4;
+    private Button DeleteCacheButton;
 }

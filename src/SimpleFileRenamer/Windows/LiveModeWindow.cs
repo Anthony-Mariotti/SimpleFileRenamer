@@ -1,17 +1,20 @@
-﻿using NPOI.XSSF.UserModel;
-using Serilog;
+﻿using Serilog;
 using SimpleFileRenamer.Abstractions.Factory;
-using System.Diagnostics;
+using SimpleFileRenamer.Abstractions.Services;
 
 namespace SimpleFileRenamer;
 public partial class LiveModeWindow : Form
 {
     private readonly IWindowFactory _windowFactory;
+    private readonly IDataImportService _importService;
+    private readonly ILiveModeCacheService _liveModeCache;
 
-    public LiveModeWindow(IWindowFactory windowFactory)
+    public LiveModeWindow(IWindowFactory windowFactory, IDataImportService importService, ILiveModeCacheService liveModeCache)
     {
         Log.Verbose("Initializing Live Mode Window");
         _windowFactory = windowFactory;
+        _importService = importService;
+        _liveModeCache = liveModeCache;
 
         InitializeComponent();
 
@@ -20,7 +23,8 @@ public partial class LiveModeWindow : Form
 
     private void ImportButton_Click(object sender, EventArgs e)
     {
-        Log.Verbose("Displaying import file dialog");
+        Log.Information("Import button clicked. Displaying file dialog to select file for import");
+
         // Create an OpenFileDialog to select the Excel/CSV file
         var openFileDialog = new OpenFileDialog
         {
@@ -34,172 +38,119 @@ public partial class LiveModeWindow : Form
             Log.Debug("Selecting file {File} for import", openFileDialog.FileName);
             var filePath = openFileDialog.FileName;
 
-            // Depending on the file type, read the file
-            if (Path.GetExtension(filePath).ToLower().Contains("csv"))
+            try
             {
-                Log.Debug("Extesion read as CSV file");
-                // Process CSV
-                var people = ReadDataFromCSV(filePath, out var headers);
+                var hasHeader = MessageBox.Show(
+                    "Does the file contain a header row?",
+                    "Header Row", MessageBoxButtons.YesNo) == DialogResult.Yes;
 
-                // Populate the list in your application
-                PopulatePeopleList(people, headers);
-            }
-            else
-            {
-                Log.Debug("File has {Extension} and reading as excel", Path.GetExtension(filePath));
-                // Process EXCEL
-                var people = ReadDataFromExcel(filePath, out var headers);
+                Log.Information("User selected that file has header row: {HasHeader}", hasHeader);
 
-                // Populate the list in your application
-                PopulatePeopleList(people, headers);
-            }
-        }
-    }
-
-    private List<List<string>> ReadDataFromCSV(string filePath, out List<string> headers)
-    {
-        Log.Verbose("Attempting to read from CSV file {File}", filePath);
-        var stopwatch = new Stopwatch();
-        stopwatch.Start();
-
-        var data = new List<List<string>>();
-        headers = new List<string>();
-
-        try
-        {
-            using var sr = new StreamReader(filePath);
-
-            var rowIndex = 0;
-            string? line;
-
-            // Ask the user if the file has a header row
-            var dialogResult = rowIndex == 0
-                ? MessageBox.Show("Does the file contain a header row?", "Header Row", MessageBoxButtons.YesNo)
-                : DialogResult.No;
-
-            Log.Verbose("Response to header row was {Response}", dialogResult == DialogResult.Yes ? "Yes" : "No");
-
-            while ((line = sr.ReadLine()) != null)
-            {
-                string[] columns = line.Split(',');
-
-                if (dialogResult == DialogResult.Yes && rowIndex == 0)
+                // Depending on the file type, read the file
+                if (Path.GetExtension(filePath).ToLower().Contains("csv"))
                 {
-                    headers.AddRange(columns);
+                    Log.Information("Importing data from CSV file {FilePath}", filePath);
+
+                    // Process CSV
+                    var people = _importService.FromCSV(filePath, out var headers, hasHeader);
+
+                    Log.Information("Successfully imported {RecordCount} records from CSV file {FilePath}", people.Count, filePath);
+
+                    _liveModeCache.SelectFile(filePath);
+
+                    // Populate the list in your application
+                    PopulatePeopleList(people, headers);
                 }
                 else
                 {
-                    data.Add(new List<string>(columns));
+                    Log.Information("Importing data from Excel file {FilePath}", filePath);
+
+                    // Process EXCEL
+                    var people = _importService.FromExcel(filePath, out var headers, hasHeader);
+
+                    Log.Information("Successfully imported {RecordCount} records from Excel file {FilePath}", people.Count, filePath);
+
+                    _liveModeCache.SelectFile(filePath);
+
+                    // Populate the list in your application
+                    PopulatePeopleList(people, headers);
                 }
-                rowIndex++;
             }
-
-            stopwatch.Stop();
-            Log.Debug("Generated {DataNumber} data lines and {HeaderNumber} headers in {ElapsedMilliseconds}ms", data.Count, headers.Count, stopwatch.ElapsedMilliseconds);
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "An error occurred while reading the CSV file");
-            MessageBox.Show("Error reading the CSV file: " + ex.Message,
-                "Failed reading file", MessageBoxButtons.OK, MessageBoxIcon.Error);
-        }
-
-        return data;
-    }
-
-    private List<List<string>> ReadDataFromExcel(string filePath, out List<string> headers)
-    {
-        Log.Verbose("Attempting to read from Excel file {File}", filePath);
-        var stopwatch = new Stopwatch();
-        stopwatch.Start();
-
-        var data = new List<List<string>>();
-        headers = new List<string>();
-
-        try
-        {
-            using var file = new FileStream(filePath, FileMode.Open, FileAccess.Read);
-
-            var workbook = new XSSFWorkbook(file);
-            var sheet = workbook.GetSheetAt(0);
-
-            var startRowIndex = 0;
-
-            // Ask the user if the file has a header row
-            var dialogResult = MessageBox.Show("Does the file contain a header row?", "Header Row", MessageBoxButtons.YesNo);
-            Log.Verbose("Response to header row was {Response}", dialogResult == DialogResult.Yes ? "Yes" : "No");
-
-            if (dialogResult == DialogResult.Yes)
+            catch (Exception ex)
             {
-                var headerRow = sheet.GetRow(0);
-                foreach (var cell in headerRow)
-                {
-                    headers.Add(cell.StringCellValue);
-                }
-                startRowIndex = 1; // Skip the header row
+                Log.Error(ex, "An error occurred while importing data");
+                MessageBox.Show("Error importing data: " + ex.Message, "Failed importing data",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
-
-            // Read data
-            for (int rowIndex = startRowIndex; rowIndex <= sheet.LastRowNum; rowIndex++)
-            {
-                var row = sheet.GetRow(rowIndex);
-                if (row != null)
-                {
-                    var rowData = new List<string>();
-                    for (int colIndex = 0; colIndex < row.LastCellNum; colIndex++)
-                    {
-                        var cell = row.GetCell(colIndex);
-                        rowData.Add(cell?.ToString() ?? string.Empty);
-                    }
-                    data.Add(rowData);
-                }
-            }
-
-            stopwatch.Stop();
-            Log.Debug("Generated {DataNumber} data lines and {HeaderNumber} headers in {ElapsedMilliseconds}ms", data.Count, headers.Count, stopwatch.ElapsedMilliseconds);
         }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "An error occurred while reading the CSV file");
-            MessageBox.Show("Error reading the Excel file: " + ex.Message,
-                "Failed reading file", MessageBoxButtons.OK, MessageBoxIcon.Error);
-        }
-
-        return data;
     }
 
     private void PopulatePeopleList(List<List<string>> data, List<string> headers)
     {
-        Log.Verbose("Attempting to populate data list with {DataNumber} records and {HeaderNumber} headers", data.Count, headers.Count);
-        PeopleListView.Items.Clear();
-        PeopleListView.Columns.Clear();
-
-        // Add fixed 'Status' column
-        PeopleListView.Columns.Add("Status");
-
-        // Set column headers
-        foreach (string header in headers)
+        Log.Information("Attempting to populate data list with {DataNumber} records and {HeaderNumber} headers", data.Count, headers.Count);
+        try
         {
-            PeopleListView.Columns.Add(header);
-        }
+            PeopleListView.Items.Clear();
+            PeopleListView.Columns.Clear();
 
-        // Add items
-        foreach (var rowData in data)
-        {
-            var item = new ListViewItem("Not Started"); // The first column (Status) should be empty initially
+            // Add fixed 'Status' column
+            PeopleListView.Columns.Add("Status");
 
-            foreach (string columnData in rowData)
+            // Set column headers
+            if (headers.Count > 0)
             {
-                item.SubItems.Add(columnData); // This adds data starting from the second column
+                foreach (string header in headers)
+                {
+                    PeopleListView.Columns.Add(header);
+                }
+            }
+            else
+            {
+                Log.Debug("No headers were supplied. Generating default column numbers");
+                var maxColumns = data.Any()
+                    ? data.Max(row => row.Count)
+                    : 0;
+
+                for (int i = 1; i <= maxColumns; i++)
+                {
+                    PeopleListView.Columns.Add($"Column{i}");
+                }
+                Log.Verbose("Generated {MaxColumns} default columns", maxColumns);
             }
 
-            PeopleListView.Items.Add(item);
-        }
+            var rowIndex = 0;
+            foreach (var rowData in data)
+            {
+                var cachedRow = _liveModeCache.GetOrCreateCachedRow(rowIndex, rowData[0]);
 
-        // Auto resize columns
-        foreach (ColumnHeader column in PeopleListView.Columns)
+                // The first column (Status) should be empty initially
+                var item = new ListViewItem(cachedRow.Status)
+                {
+                    Tag = cachedRow.Hash
+                };
+
+                foreach (string columnData in rowData)
+                {
+                    item.SubItems.Add(columnData); // This adds data starting from the second column
+                }
+
+                PeopleListView.Items.Add(item);
+
+                rowIndex++;
+            }
+
+            // Auto resize columns
+            foreach (ColumnHeader column in PeopleListView.Columns)
+            {
+                column.Width = -2;
+            }
+            Log.Information("Successfully populated data list with {RecordCount} records and created {ColumnCount} columns",
+                data.Count, PeopleListView.Columns.Count - 1);
+        }
+        catch (Exception ex)
         {
-            column.Width = -2;
+            Log.Error(ex, "Failed to populate data list with {RecordCount} records and created {ColumnCount} columns",
+                data.Count, PeopleListView.Columns.Count - 1);
         }
     }
 
@@ -208,19 +159,43 @@ public partial class LiveModeWindow : Form
         if (PeopleListView.SelectedItems.Count > 0)
         {
             var selectedItem = PeopleListView.SelectedItems[0];
-            var personName = selectedItem.SubItems[1].Text; // Assuming name is in the second column
-            Log.Debug("The item {Data} has been selected for a session", personName);
+            var rowHash = selectedItem.Tag as string;
+
+            if (string.IsNullOrWhiteSpace(rowHash))
+            {
+                Log.Error("Selected item has an invalid row hash");
+                MessageBox.Show("Failed to load session");
+                return;
+            }
+
+            if (selectedItem.Text == "Completed" && MessageBox.Show(
+                    "This item is completed. Do you want to start a new session?",
+                    "Item already completed",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Question) != DialogResult.Yes)
+            {
+                Log.Information("Item selected: {RowHash}. Already completed and user canceled", rowHash);
+                return;
+            }
+
+            Log.Information("Item selected: {RowHash}. Opening session window...", rowHash);
 
             // Create and open the SessionForm
             using var sessionWindow = _windowFactory.CreateSessionWindow();
 
             if (!sessionWindow.IsDisposed)
             {
-                _ = sessionWindow.ShowDialog(this, personName, selectedItem);
+                sessionWindow.SetSession(rowHash, selectedItem);
+                _ = sessionWindow.ShowDialog(this);
+                Log.Information("Session window opened successfully for {DataItem}", rowHash);
                 return;
             }
 
-            Log.Error("The session window did not start as it was already disposed");
+            Log.Error("The session window for {DataItem} did not open as it was already disposed", rowHash);
+        }
+        else
+        {
+            Log.Warning("No item selected to open a session window");
         }
     }
 
@@ -228,5 +203,10 @@ public partial class LiveModeWindow : Form
     {
         using var configWindow = _windowFactory.CreateSessionConfigurationWindow();
         _ = configWindow.ShowDialog();
+    }
+
+    private void ExitToolStripMenuItem_Click(object sender, EventArgs e)
+    {
+        Close();
     }
 }

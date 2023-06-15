@@ -1,76 +1,64 @@
 ﻿using Serilog;
 using SimpleFileRenamer.Abstractions.Services;
-using SimpleFileRenamer.Abstractions.Windows;
+using SimpleFileRenamer.Models.Session;
+using SimpleFileRenamer.Services;
 
 namespace SimpleFileRenamer;
 
-public partial class SessionWindow : BaseWindow
+public partial class SessionWindow : Form
 {
     private readonly List<FileSystemWatcher> _fileWatchers = new List<FileSystemWatcher>();
     private readonly IConfigurationService _configuration;
-    private readonly ISessionStateService _session;
+    private readonly ILiveModeCacheService _liveModeCache;
 
-    private ListViewItem? _personListItem;
-    private string? _safePersonName;
-    private string? _personName;
+    private string? _safeSessionName;
 
     private int _fileCount = 0;
-    private int _currentSessionNumber = 0;
 
-    public SessionWindow(IConfigurationService configuration, ISessionStateService session)
+    private string _rowHash = default!;
+    private ListViewItem _sessionItem = default!;
+
+    private LiveSession _currentSession = default!;
+
+    private bool _transfering = false;
+
+    public SessionWindow(IConfigurationService configuration, ILiveModeCacheService liveModeCache)
     {
         Log.Verbose("Initializing Session Window");
         _configuration = configuration;
-        _session = session;
+        _liveModeCache = liveModeCache;
 
         InitializeComponent();
-    }
 
-    public DialogResult ShowDialog(IWin32Window parent, string personName, ListViewItem personListItem)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(nameof(parent));
-        ArgumentException.ThrowIfNullOrEmpty(nameof(personName));
-        ArgumentException.ThrowIfNullOrEmpty(nameof(personListItem));
-
-        Text = $"{personName}'s Session";
-        _personName = personName;
-        _safePersonName = _personName.Replace(" ", "_").ToLower();
-
-        if (string.IsNullOrWhiteSpace(_safePersonName))
-        {
-            throw new ArgumentException("Failed to create safe person name with supplied person name", nameof(personName));
-        }
-
-        _personListItem = personListItem;
-
-        LoadConfiguration();
-        LoadSessionState();
-
+        FilesListView.Items.Clear();
         FilesListView.View = View.Details;
         FilesListView.Columns.Add("Files", FilesListView.Width - 4);
-
-        StartFolderMonitoring();
-
-#pragma warning disable CS0618 // This is for overriding the ShowDialog, ignored
-        return ShowDialog(parent);
-#pragma warning restore CS0618 // This is for overriding the ShowDialog, ignored
     }
 
-    private void LoadConfiguration()
+    public void SetSession(string rowHash, ListViewItem sessionItem)
     {
-        Log.Verbose("Loading Configuration");
+        ArgumentException.ThrowIfNullOrEmpty(rowHash, nameof(rowHash));
+        ArgumentNullException.ThrowIfNull(sessionItem, nameof(sessionItem));
 
-        var lastSessionNumber = 0;
-        if (_configuration.Value.LiveMode.LastSessionNumbers.ContainsKey(_safePersonName!))
+        _rowHash = rowHash;
+        _sessionItem = sessionItem;
+
+        _currentSession = _liveModeCache.GetLiveSession(_rowHash);
+
+        var sessionName = _sessionItem.SubItems[1].Text;
+        Text = $"{_sessionItem.SubItems[1].Text}'s Session";
+        _safeSessionName = sessionName.Replace(" ", "_").ToLower();
+
+        _fileCount = _currentSession.Files.Count;
+        foreach (var file in _currentSession.Files)
         {
-            Log.Debug("Configuration found session number {SessionNumber} for {KeyName}",
-                _configuration.Value.LiveMode.LastSessionNumbers[_safePersonName!], _safePersonName!);
-
-            lastSessionNumber = _configuration.Value.LiveMode.LastSessionNumbers[_safePersonName!];
+            FilesListView.Items.Add(new ListViewItem(file.Name)
+            {
+                Tag = file
+            });
         }
 
-        _currentSessionNumber = lastSessionNumber;
-        Log.Verbose("Loaded Session Configuration");
+        StartFolderMonitoring();
     }
 
     private void StartFolderMonitoring()
@@ -130,74 +118,14 @@ public partial class SessionWindow : BaseWindow
         }
 
         // Mark the person's status as "Started"
-        _personListItem!.SubItems[0].Text = "Started";
-    }
-
-    private void SaveSessionState()
-    {
-        Log.Verbose("Saving session state");
-        if (_session.Current != null)
-        {
-            _session.Current.Name = _personName!;
-            _session.Current.CreatedFiles = new();
-
-            // For example, populate the list from the ListView
-            foreach (ListViewItem item in FilesListView.Items)
-            {
-                _session.Current.CreatedFiles.Add(item.Text);
-            }
-
-            _session.Save();
-
-            // Save the updated session number back to the config
-            _configuration.Value.LiveMode.LastSessionNumbers[_safePersonName!] = _currentSessionNumber;
-
-            // Save the config back to the file
-            SaveConfiguration();
-            Log.Debug("Sucessfully saved the session state");
-            return;
-        }
-
-        Log.Warning("No session available to save");
-    }
-
-    private void LoadSessionState()
-    {
-        Log.Verbose("Loading Session State");
-
-        if (!_session.Load(_personName!))
-        {
-            Log.Warning("The session state failed to load");
-            MessageBox.Show($"Failed to load session for {_personName}", "Session Load Failure",
-                MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            return;
-        }
-
-        _fileCount = _session.Current?.CreatedFiles.Count ?? 0;
-
-        if (_session.Current?.CreatedFiles.Count > 0)
-        {
-            // Populate the FilesListView with the loaded session data
-            foreach (var fileName in _session.Current.CreatedFiles)
-            {
-                FilesListView.Items.Add(fileName);
-            }
-        }
-
-        Log.Verbose("Session state loaded with {FileCount} files", _fileCount);
-    }
-
-    private void SaveConfiguration()
-    {
-        Log.Verbose("Saving configuration");
-        _configuration.Save();
-
-        Log.Verbose("Sucessfully saved configuration");
+        _sessionItem!.SubItems[0].Text = "Started";
+        _liveModeCache.SetRowStatus(_rowHash, "Started");
     }
 
     private void FileSystemWatcher_Created(object sender, FileSystemEventArgs e)
     {
         Log.Verbose("Detected new file {FileName} created in destination folder", e.Name);
+        _transfering = true;
 
         // The method is triggered as soon as the file is created, it may not be ready to be used yet
         // Wait until the file is released by another process
@@ -223,84 +151,124 @@ public partial class SessionWindow : BaseWindow
         {
             Log.Debug("File ready with {Extension} extension", Path.GetExtension(e.FullPath));
 
-            var newFileName = $"{_safePersonName!}_{_currentSessionNumber}_{++_fileCount}{Path.GetExtension(e.FullPath)}";
-            var destinationPath = Path.Combine(_configuration.Value.LiveMode.DestinationFolder, newFileName);
-
             // Move and rename the file
             try
             {
+                var newFileName = $"{_safeSessionName!}_{_currentSession.SessionId}_{++_fileCount}{Path.GetExtension(e.FullPath)}";
+                var destinationPath = Path.Combine(_configuration.Value.LiveMode.DestinationFolder, newFileName);
+
                 // Try to copy the file
                 Log.Verbose("Attempting to copy {FilePath} to {DestinationPath}", e.FullPath, destinationPath);
                 File.Copy(e.FullPath, destinationPath);
 
                 // Use Invoke to update the UI on the main thread
-                Invoke(() => FilesListView.Items.Add(new ListViewItem(newFileName))); // Add to the ListView
+                Invoke(() =>
+                {
+                    _currentSession.Files.Add(new SessionFile
+                    {
+                        Name = newFileName,
+                        Path = destinationPath
+                    });
+                    FilesListView.Items.Add(new ListViewItem(newFileName)
+                    {
+                        Tag = destinationPath
+                    });
+                }); // Add to the ListView
+
+                _transfering = false;
                 return;
             }
             catch (IOException ex)
             {
-
+                _transfering = false;
                 // If max attempts reached, show error message
                 Log.Error(ex, "The file could not be processed after multiple attempts");
-                MessageBox.Show("Error handling file copy: The file could not be accessed after multiple attempts.", "Copy Failure",
+                MessageBox.Show($"Error handling file copy: {ex.Message}", "Copy Failure",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
+
+        _transfering = false;
 
         Log.Warning("File at {FilePath} was never ready and was unable to be copied after {MaxRetry} retries", e.FullPath, retries);
     }
 
     private void ExitSessionButton_Click(object sender, EventArgs e)
     {
-        Log.Verbose("Exiting Session");
-        SaveSessionState();
-
-        Close();
-    }
-
-    private void FinishSessionButton_Click(object sender, EventArgs e)
-    {
-        Log.Verbose("Attempting to finish session");
-        var dialogResult = MessageBox.Show(
-            "Are you sure you want to finish the session?",
-            "Finish Session",
-            MessageBoxButtons.YesNo);
-
-        if (dialogResult == DialogResult.Yes)
+        if (!_transfering)
         {
-            Log.Verbose("Finish session requested");
-
-            // Mark the person as completed in the PeopleListView on the main form
-            _personListItem!.SubItems[0].Text = "Completed";
-
-            _session.Finish();
-
-            // Save the updated session number back to the config
-            _configuration.Value.LiveMode.LastSessionNumbers[_safePersonName!] = ++_currentSessionNumber;
-
-            // Save the config back to the file
-            SaveConfiguration();
-
-            Log.Debug("Successfully finished session");
+            Log.Verbose("Exiting Session");
+            _liveModeCache.UpdateLiveSession(_rowHash, _currentSession);
+            _liveModeCache.Save();
             Close();
             return;
         }
     }
 
+    private void FinishSessionButton_Click(object sender, EventArgs e)
+    {
+        Log.Verbose("Attempting to finish session");
+        if (!_transfering)
+        {
+            var dialogResult = MessageBox.Show(
+            "Are you sure you want to finish the session?",
+            "Finish Session",
+            MessageBoxButtons.YesNo);
+
+            if (dialogResult == DialogResult.Yes)
+            {
+                Log.Verbose("Finish session requested");
+
+                // Mark the person as completed in the PeopleListView on the main form
+                _sessionItem!.SubItems[0].Text = "Completed";
+                _liveModeCache.SetRowStatus(_rowHash, "Completed");
+
+                _currentSession.SessionId++;
+                _currentSession.Files.Clear();
+
+                _liveModeCache.UpdateLiveSession(_rowHash, _currentSession);
+                _liveModeCache.Save();
+
+                Log.Debug("Successfully finished session");
+                Close();
+                return;
+            }
+
+            return;
+        }
+
+        ShowTransferringMessage();
+    }
+
     private void SessionWindow_FormClosing(object sender, FormClosingEventArgs e)
     {
         Log.Verbose("Session window closing");
-        foreach (var watcher in _fileWatchers)
+        if (!_transfering)
         {
-            // Unsubscribe from the created event
-            watcher.Created -= FileSystemWatcher_Created;
+            foreach (var watcher in _fileWatchers)
+            {
+                // Unsubscribe from the created event
+                watcher.Created -= FileSystemWatcher_Created;
 
-            // Disable the FileSystemWatcher to stop raising events
-            watcher.EnableRaisingEvents = false;
+                // Disable the FileSystemWatcher to stop raising events
+                watcher.EnableRaisingEvents = false;
 
-            // Dispose the FileSystemWatcher to release resources
-            watcher.Dispose();
+                // Dispose the FileSystemWatcher to release resources
+                watcher.Dispose();
+            }
+
+            Log.Verbose("Shutdown file watchers");
+            return;
         }
-        Log.Verbose("Shutdown file watchers");
+
+        e.Cancel = true;
+        ShowTransferringMessage();
     }
+
+    private void ShowTransferringMessage() => 
+        _ = MessageBox.Show(
+            "Cannot close while files are transferring",
+            "Can't stop just yet",
+            MessageBoxButtons.OK,
+            MessageBoxIcon.Exclamation);
 }

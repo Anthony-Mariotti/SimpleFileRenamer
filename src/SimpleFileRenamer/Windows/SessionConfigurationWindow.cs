@@ -5,6 +5,8 @@ namespace SimpleFileRenamer;
 public partial class SessionConfigurationWindow : Form
 {
     private readonly IConfigurationService _configuration;
+    private readonly ILiveModeCacheService _liveModeCache;
+
     private readonly IReadOnlyCollection<string> _supportedExtensions = new List<string>
     {
         ".jpeg",
@@ -21,10 +23,11 @@ public partial class SessionConfigurationWindow : Form
         ".tiff"
     };
 
-    public SessionConfigurationWindow(IConfigurationService configuration)
+    public SessionConfigurationWindow(IConfigurationService configuration, ILiveModeCacheService liveModeCache)
     {
         Log.Verbose("Initializing Session Configuration Window");
         _configuration = configuration;
+        _liveModeCache = liveModeCache;
 
         InitializeComponent();
 
@@ -109,6 +112,17 @@ public partial class SessionConfigurationWindow : Form
             _configuration.Value.LiveMode.MonitoredExtensions.Remove(selectedExtension);
             SelectedExtensionsListBox.Items.Remove(selectedExtension);
             AvailableExtensionsListBox.Items.Add(selectedExtension);
+        }
+    }
+
+    private void DeleteCacheButton_Click(object sender, EventArgs e)
+    {
+        if (MessageBox.Show(
+            "Are you sure you want to delete the live mode cache?",
+            "Are you sure?",
+            MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation) == DialogResult.Yes)
+        {
+            _liveModeCache.DeleteCache();
         }
     }
 }

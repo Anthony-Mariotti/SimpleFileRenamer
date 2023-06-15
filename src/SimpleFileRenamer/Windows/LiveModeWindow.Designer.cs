@@ -28,58 +28,58 @@ partial class LiveModeWindow
     /// </summary>
     private void InitializeComponent()
     {
-        menuStrip1 = new MenuStrip();
-        fileToolStripMenuItem = new ToolStripMenuItem();
-        saveToolStripMenuItem = new ToolStripMenuItem();
+        LiveModeMenuStrip = new MenuStrip();
+        FileToolStripMenuItem = new ToolStripMenuItem();
         SettingsMenuItem = new ToolStripMenuItem();
-        closeToolStripMenuItem = new ToolStripMenuItem();
-        aboutToolStripMenuItem = new ToolStripMenuItem();
+        toolStripSeparator2 = new ToolStripSeparator();
+        ExitToolStripMenuItem = new ToolStripMenuItem();
+        AboutToolStripMenuItem = new ToolStripMenuItem();
         ImportButton = new Button();
         PeopleListView = new ListView();
-        menuStrip1.SuspendLayout();
+        LiveModeMenuStrip.SuspendLayout();
         SuspendLayout();
         // 
-        // menuStrip1
+        // LiveModeMenuStrip
         // 
-        menuStrip1.ImageScalingSize = new Size(20, 20);
-        menuStrip1.Items.AddRange(new ToolStripItem[] { fileToolStripMenuItem, aboutToolStripMenuItem });
-        menuStrip1.Location = new Point(0, 0);
-        menuStrip1.Name = "menuStrip1";
-        menuStrip1.Size = new Size(582, 28);
-        menuStrip1.TabIndex = 0;
-        menuStrip1.Text = "menuStrip1";
+        LiveModeMenuStrip.ImageScalingSize = new Size(20, 20);
+        LiveModeMenuStrip.Items.AddRange(new ToolStripItem[] { FileToolStripMenuItem, AboutToolStripMenuItem });
+        LiveModeMenuStrip.Location = new Point(0, 0);
+        LiveModeMenuStrip.Name = "LiveModeMenuStrip";
+        LiveModeMenuStrip.Size = new Size(582, 28);
+        LiveModeMenuStrip.TabIndex = 0;
+        LiveModeMenuStrip.Text = "menuStrip1";
         // 
-        // fileToolStripMenuItem
+        // FileToolStripMenuItem
         // 
-        fileToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { saveToolStripMenuItem, SettingsMenuItem, closeToolStripMenuItem });
-        fileToolStripMenuItem.Name = "fileToolStripMenuItem";
-        fileToolStripMenuItem.Size = new Size(46, 24);
-        fileToolStripMenuItem.Text = "File";
-        // 
-        // saveToolStripMenuItem
-        // 
-        saveToolStripMenuItem.Name = "saveToolStripMenuItem";
-        saveToolStripMenuItem.Size = new Size(189, 26);
-        saveToolStripMenuItem.Text = "Save";
+        FileToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { SettingsMenuItem, toolStripSeparator2, ExitToolStripMenuItem });
+        FileToolStripMenuItem.Name = "FileToolStripMenuItem";
+        FileToolStripMenuItem.Size = new Size(46, 24);
+        FileToolStripMenuItem.Text = "File";
         // 
         // SettingsMenuItem
         // 
         SettingsMenuItem.Name = "SettingsMenuItem";
-        SettingsMenuItem.Size = new Size(189, 26);
+        SettingsMenuItem.Size = new Size(224, 26);
         SettingsMenuItem.Text = "Settings";
         SettingsMenuItem.Click += SettingsMenuItem_Click;
         // 
-        // closeToolStripMenuItem
+        // toolStripSeparator2
         // 
-        closeToolStripMenuItem.Name = "closeToolStripMenuItem";
-        closeToolStripMenuItem.Size = new Size(189, 26);
-        closeToolStripMenuItem.Text = "Exit Live Mode";
+        toolStripSeparator2.Name = "toolStripSeparator2";
+        toolStripSeparator2.Size = new Size(221, 6);
         // 
-        // aboutToolStripMenuItem
+        // ExitToolStripMenuItem
         // 
-        aboutToolStripMenuItem.Name = "aboutToolStripMenuItem";
-        aboutToolStripMenuItem.Size = new Size(64, 24);
-        aboutToolStripMenuItem.Text = "About";
+        ExitToolStripMenuItem.Name = "ExitToolStripMenuItem";
+        ExitToolStripMenuItem.Size = new Size(224, 26);
+        ExitToolStripMenuItem.Text = "Exit Live Mode";
+        ExitToolStripMenuItem.Click += ExitToolStripMenuItem_Click;
+        // 
+        // AboutToolStripMenuItem
+        // 
+        AboutToolStripMenuItem.Name = "AboutToolStripMenuItem";
+        AboutToolStripMenuItem.Size = new Size(64, 24);
+        AboutToolStripMenuItem.Text = "About";
         // 
         // ImportButton
         // 
@@ -102,33 +102,33 @@ partial class LiveModeWindow
         PeopleListView.UseCompatibleStateImageBehavior = false;
         PeopleListView.ItemActivate += PeopleListView_ItemActivate;
         // 
-        // LiveMode
+        // LiveModeWindow
         // 
         AutoScaleDimensions = new SizeF(8F, 20F);
         AutoScaleMode = AutoScaleMode.Font;
         ClientSize = new Size(582, 353);
         Controls.Add(PeopleListView);
         Controls.Add(ImportButton);
-        Controls.Add(menuStrip1);
-        MainMenuStrip = menuStrip1;
+        Controls.Add(LiveModeMenuStrip);
+        MainMenuStrip = LiveModeMenuStrip;
         MinimumSize = new Size(600, 400);
-        Name = "LiveMode";
+        Name = "LiveModeWindow";
         StartPosition = FormStartPosition.CenterScreen;
-        Text = "LiveMode";
-        menuStrip1.ResumeLayout(false);
-        menuStrip1.PerformLayout();
+        Text = "(Live Mode) Simple File Renamer";
+        LiveModeMenuStrip.ResumeLayout(false);
+        LiveModeMenuStrip.PerformLayout();
         ResumeLayout(false);
         PerformLayout();
     }
 
     #endregion
 
-    private MenuStrip menuStrip1;
-    private ToolStripMenuItem fileToolStripMenuItem;
-    private ToolStripMenuItem saveToolStripMenuItem;
-    private ToolStripMenuItem closeToolStripMenuItem;
-    private ToolStripMenuItem aboutToolStripMenuItem;
+    private MenuStrip LiveModeMenuStrip;
+    private ToolStripMenuItem FileToolStripMenuItem;
+    private ToolStripMenuItem ExitToolStripMenuItem;
+    private ToolStripMenuItem AboutToolStripMenuItem;
     private Button ImportButton;
     private ListView PeopleListView;
     private ToolStripMenuItem SettingsMenuItem;
+    private ToolStripSeparator toolStripSeparator2;
 }

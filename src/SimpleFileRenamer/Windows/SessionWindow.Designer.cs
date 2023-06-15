@@ -68,6 +68,7 @@ partial class SessionWindow
         // 
         AutoScaleDimensions = new SizeF(8F, 20F);
         AutoScaleMode = AutoScaleMode.Font;
+        CancelButton = ExitSessionButton;
         ClientSize = new Size(397, 328);
         Controls.Add(FinishSessionButton);
         Controls.Add(ExitSessionButton);

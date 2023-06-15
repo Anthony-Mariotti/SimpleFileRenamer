@@ -60,8 +60,9 @@ internal static class Program
         services.AddSingleton<IWindowFactory, WindowFactory>();
         services.AddSingleton<IConfigurationService, ConfigurationService>();
         services.AddSingleton<IRenameHistoryService, RenameHistoryService>();
+        services.AddSingleton<IDataImportService, DataImportService>();
+        services.AddSingleton<ILiveModeCacheService, LiveModeCacheService>();
 
-        services.AddScoped<ISessionStateService, SessionStateService>();
         services.AddScoped<IRenameService, RenameService>();
 
         // Available Windows
