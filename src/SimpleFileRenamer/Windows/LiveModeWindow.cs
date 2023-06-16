@@ -183,15 +183,17 @@ public partial class LiveModeWindow : Form
             // Create and open the SessionForm
             using var sessionWindow = _windowFactory.CreateSessionWindow();
 
+            sessionWindow.SetSession(rowHash, selectedItem);
+
             if (!sessionWindow.IsDisposed)
             {
-                sessionWindow.SetSession(rowHash, selectedItem);
                 _ = sessionWindow.ShowDialog(this);
                 Log.Information("Session window opened successfully for {DataItem}", rowHash);
                 return;
             }
 
-            Log.Error("The session window for {DataItem} did not open as it was already disposed", rowHash);
+            // Disposed is expected because we closed it before opening... what else could dispose it...?
+            //Log.Error("The session window for {DataItem} did not open as it was already disposed", rowHash);
         }
         else
         {
