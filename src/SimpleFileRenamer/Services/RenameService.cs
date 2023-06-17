@@ -19,7 +19,7 @@ public class RenameService : IRenameService
 
     private readonly List<RenameData> _renameData = new List<RenameData>();
 
-    private readonly bool _simulate = true;
+    private readonly bool _simulate = false;
     private readonly int _simulationSpeed = 25;
 
     private string? _selectedDirectory;
